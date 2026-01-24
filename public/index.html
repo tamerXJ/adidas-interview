@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Adidas Ein Shemer - Interview</title>
+    <style>
+        /* === ADIDAS PRO THEME === */
+        :root {
+            --primary: #000000;
+            --secondary: #ffffff;
+            --border-thick: 3px solid #000;
+            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* === תיקון גלובלי לחישובי גודל (מונע חריגה מהמסך) === */
+        * {
+            box-sizing: border-box; /* הכרחי לרספונסיביות! */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            cursor: default;
+        }
+
+        input {
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+            user-select: text !important;
+            cursor: text !important;
+        }
+
+        body { 
+            font-family: var(--font-main);
+            text-align: center; 
+            margin: 0; padding: 0;
+            background-color: #87CEEB; 
+            
+            /* תמונות רקע */
+            background-image: 
+                url('https://upload.wikimedia.org/wikipedia/commons/1/1b/Adidas_2022_logo.svg'), 
+                url('https://images.microcms-assets.io/assets/1775a3633c8b428d9f011c6a758a8a5c/c0bb4fc727e24685be2532ae31ea82ea/A.jpg?w=1500&fm=webp'); 
+            
+            background-repeat: no-repeat, no-repeat;
+            background-position: center 15%, center center; 
+            background-size: 800px, cover; 
+            background-attachment: fixed;
+            
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden; /* מונע גלילה הצידה בטלפון */
+        }
+
+        .container { 
+            background-color: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(5px); 
+            -webkit-backdrop-filter: blur(5px);
+
+            width: 100%;
+            max-width: 550px; 
+            padding: 50px 40px; 
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2); 
+            border: var(--border-thick);
+            position: relative;
+            margin: 20px; /* רווח קטן מהצדדים בטלפון */
+        }
+
+        h1 {
+            color: var(--primary);
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            line-height: 1.2;
+            word-wrap: break-word; /* שבירת מילים ארוכות אם צריך */
+        }
+
+        h2 {
+            font-size: 20px;
+            color: #000;
+            font-weight: 700;
+            margin-bottom: 40px;
+        }
+
+        label {
+            display: block;
+            text-align: right;
+            font-weight: 800;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #000;
+        }
+        
+        input { 
+            width: 100%; 
+            padding: 15px; 
+            margin-bottom: 5px;
+            border: 2px solid #000; 
+            font-size: 18px; 
+            background-color: rgba(255, 255, 255, 0.9);
+            font-family: var(--font-main);
+            font-weight: 600;
+            transition: 0.2s;
+            border-radius: 0; /* מונע פינות עגולות באייפון */
+            -webkit-appearance: none;
+        }
+        
+        input:focus {
+            outline: none;
+            background-color: #000;
+            color: #fff;
+        }
+
+        .error-msg {
+            color: #d8000c;
+            background-color: rgba(255,255,255,0.9);
+            padding: 2px 5px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: right;
+            height: 20px;
+            margin-bottom: 15px;
+            visibility: hidden;
+            display: inline-block;
+        }
+
+        button { 
+            background-color: var(--primary); 
+            color: var(--secondary); 
+            padding: 20px 40px; 
+            border: none; 
+            cursor: pointer; 
+            font-size: 20px; 
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.2s;
+            border: 2px solid #000;
+            -webkit-appearance: none; /* תיקון כפתורים באייפון */
+        }
+
+        button:hover { 
+            background-color: #fff;
+            color: #000;
+            transform: translateY(-2px);
+        }
+
+        .hidden { display: none; }
+
+        .footer-credit {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #000;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 1px 1px 0px rgba(255,255,255,0.5);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: #ccc;
+            margin-bottom: 30px;
+            width: 100%;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #000;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* === התאמה לטלפונים (Mobile Responsive) === */
+        @media only screen and (max-width: 600px) {
+            body {
+                /* הקטנת הלוגו בטלפון שלא יתפוס את כל המסך */
+                background-size: 350px, cover; 
+                background-position: center 10%, center center;
+            }
+            
+            .container {
+                width: 90%; /* בטלפון הריבוע יתפוס 90 אחוז מהרוחב */
+                padding: 30px 20px; /* פחות שוליים פנימיים */
+                margin-top: 50px;
+            }
+
+            h1 {
+                font-size: 24px; /* הקטנת כותרת ענקית */
+            }
+
+            h2 {
+                font-size: 18px;
+                margin-bottom: 25px;
+            }
+
+            input {
+                font-size: 16px; /* מונע זום אוטומטי באייפון */
+                padding: 12px;
+            }
+
+            button {
+                padding: 15px;
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="registration-section">
+            <h1>ADIDAS EIN SHEMER<br>מערכת גיוס</h1>
+            <h2>ברוכים הבאים</h2>
+            
+            <label>שם מלא (בעברית בלבד)</label>
+            <input type="text" id="full-name" placeholder="">
+            <div id="error-name" class="error-msg">נא לכתוב בעברית בלבד</div>
+            
+            <label>מספר טלפון (לפחות 10 ספרות)</label>
+            <input type="tel" id="phone" placeholder="" maxlength="12">
+            <div id="error-phone" class="error-msg">מספר לא תקין (מינימום 10 ספרות)</div>
+            
+            <label>עיר מגורים (בעברית בלבד)</label>
+            <input type="text" id="city" placeholder="">
+            <div id="error-city" class="error-msg">נא לכתוב בעברית בלבד</div>
+
+            <button onclick="startInterview()">התחל ריאיון</button>
+        </div>
+
+        <div id="quiz-section" class="hidden">
+            <div class="progress-bar"><div id="p-fill" class="progress-fill"></div></div>
+            
+            <div style="text-align: left; font-weight: 900; font-size: 14px; margin-bottom: 5px;">
+                QUESTION <span id="q-number">01</span>
+            </div>
+            
+            <h1 id="question-title" style="font-size: 22px; min-height: 60px;">טוען שאלה...</h1>
+            
+            <input type="text" id="answer-box" placeholder="" autocomplete="off">
+            <div id="error-answer" class="error-msg">נא לכתוב תשובה בעברית בלבד</div>
+            
+            <button onclick="nextQuestion()">הבא ></button>
+        </div>
+
+        <div id="finish-section" class="hidden">
+            <h1>הריאיון הסתיים</h1>
+            <p id="summary-result" style="white-space: pre-wrap; font-size: 18px; line-height: 1.6; font-weight: 600;"></p>
+        </div>
+
+        <div class="footer-credit">
+            Developed by Tamer Massarwi
+        </div>
+    </div>
+
+    <script>
+        let questions = [];
+        let currentQIndex = 0;
+        let myAnswers = [];
+        let candidateDetails = {}; 
+
+        // === ולידציה ===
+
+        function isHebrew(text) {
+            const hebrewRegex = /^[\u0590-\u05FF\s0-9.,?!"'-]+$/;
+            return hebrewRegex.test(text);
+        }
+
+        function isValidPhone(phone) {
+            const phoneRegex = /^\d{10,}$/;
+            return phoneRegex.test(phone);
+        }
+
+        function showError(elementId, show) {
+            document.getElementById(elementId).style.visibility = show ? 'visible' : 'hidden';
+        }
+
+        // =================================
+
+        async function startInterview() {
+            const name = document.getElementById('full-name').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const city = document.getElementById('city').value.trim();
+
+            let isValid = true;
+
+            if (!name || !isHebrew(name)) { showError('error-name', true); isValid = false; } else { showError('error-name', false); }
+            if (!phone || !isValidPhone(phone)) { showError('error-phone', true); isValid = false; } else { showError('error-phone', false); }
+            if (!city || !isHebrew(city)) { showError('error-city', true); isValid = false; } else { showError('error-city', false); }
+
+            if (!isValid) return;
+
+            candidateDetails = { name, phone, city };
+
+            document.getElementById('registration-section').classList.add('hidden');
+            document.getElementById('quiz-section').classList.remove('hidden');
+
+            const response = await fetch('/api/get-questions');
+            questions = await response.json();
+            showCurrentQuestion();
+        }
+
+        function showCurrentQuestion() {
+            const q = questions[currentQIndex];
+            document.getElementById('question-title').innerText = q.text;
+            
+            const qNum = currentQIndex + 1;
+            document.getElementById('q-number').innerText = qNum < 10 ? '0' + qNum : qNum;
+            
+            const progressPercent = ((currentQIndex) / questions.length) * 100;
+            document.getElementById('p-fill').style.width = progressPercent + '%';
+
+            document.getElementById('answer-box').value = ''; 
+            showError('error-answer', false);
+            
+            if (q.type === 'number') {
+                document.getElementById('answer-box').type = 'number';
+            } else {
+                document.getElementById('answer-box').type = 'text';
+            }
+            document.getElementById('answer-box').focus();
+        }
+
+        async function nextQuestion() {
+            const answerBox = document.getElementById('answer-box');
+            const answerValue = answerBox.value.trim();
+            const qType = questions[currentQIndex].type;
+            
+            if (answerValue === "") {
+                answerBox.style.borderColor = "red";
+                return;
+            } else {
+                answerBox.style.borderColor = "black";
+            }
+
+            if (qType === 'text' && !isHebrew(answerValue)) {
+                showError('error-answer', true);
+                return;
+            }
+
+            myAnswers.push({ 
+                questionId: questions[currentQIndex].id, 
+                answer: answerValue 
+            });
+
+            currentQIndex++;
+
+            if (currentQIndex < questions.length) {
+                showCurrentQuestion();
+            } else {
+                document.getElementById('p-fill').style.width = '100%';
+                await sendResults();
+            }
+        }
+
+        async function sendResults() {
+            document.getElementById('quiz-section').classList.add('hidden');
+            document.getElementById('finish-section').classList.remove('hidden');
+            document.getElementById('finish-section').innerHTML = "<h2>שולח נתונים...</h2>";
+
+            const response = await fetch('/api/submit-interview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    candidate: candidateDetails, 
+                    answers: myAnswers 
+                })
+            });
+
+            const data = await response.json();
+            
+            document.getElementById('finish-section').innerHTML = `
+                <h1 style="margin-bottom: 20px;">תודה רבה</h1>
+                <div style="border-top: 2px solid #000; padding-top: 20px;">
+                    <p>${data.message}</p>
+                </div>
+            `;
+        }
+        
+        document.getElementById("answer-box").addEventListener("keyup", function(event) {
+            if (event.key === "Enter") nextQuestion();
+        });
+    </script>
+</body>
+</html>
