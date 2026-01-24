@@ -5,14 +5,21 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ==========================================================
-// 1. הדבק את המפתח של ה-AI
-const API_KEY = "AIzaSyCFtrENytySOKTydsAs4if4LYWeMy_i2N0";
-
-// 2. הדבק את הלינק של Apps Script
-const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwstjjPaN7ExPbXW0do-b6rnvfq6emZVGhMpt5RhyXlWkM0u-ZR3xNpayjrkTC3yUaWFQ/exec";
+// שינוי קריטי: אנחנו מושכים את המפתחות מהשרת (Environment Variables)
+// במקום לכתוב אותם כאן במפורש
+const API_KEY = process.env.GEMINI_API_KEY;
+const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
 // ==========================================================
 
-let ACTIVE_MODEL = "gemini-pro"; // ברירת מחדל לגיבוי
+// בדיקה שהמפתחות קיימים (רק כדי שנדע אם שכחנו להגדיר ב-Render)
+if (!API_KEY) {
+    console.error("❌ שגיאה קריטית: חסר מפתח GEMINI_API_KEY בהגדרות השרת!");
+}
+if (!GOOGLE_SHEET_URL) {
+    console.error("⚠️ אזהרה: חסר לינק GOOGLE_SHEET_URL בהגדרות השרת.");
+}
+
+let ACTIVE_MODEL = "gemini-pro"; 
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -28,7 +35,6 @@ const questions = [
     { id: 3, text: "לקוח פונה אליך בטון כועס ולא מכבד ליד אנשים אחרים. מה התגובה הראשונה שלך?", type: "text" },
     { 
         id: 4, 
-        // תיקון חשוב: מחקנו את "שאלה של כנות" - עכשיו זו שאלה רגילה שלא תפעיל חסימה
         text: "האם קרה לך בעבר שנאלצת לאחר למשמרת או לבטל ברגע האחרון?", 
         type: "select",
         options: ["מעולם לא קרה לי (תמיד מגיע/ה בזמן)", "קרה לעיתים רחוקות מאוד בגלל חירום", "קורה לפעמים, זה אנושי"] 
@@ -39,14 +45,12 @@ const questions = [
     { id: 8, text: "לסיום: למה בחרת דווקא באדידס ולא בחנות אופנה רגילה?", type: "text" }
 ];
 
-// === פונקציה חכמה למציאת מודל תקין (מונעת שגיאות 404) ===
 async function findWorkingModel() {
     console.log("🔍 בודק איזה מודלים פתוחים בחשבון שלך...");
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
         const data = await response.json();
         if (data.models) {
-            // מחפש מודל מסוג Gemini שתומך ביצירת תוכן
             const availableModel = data.models.find(m => 
                 m.name.includes('gemini') && 
                 m.supportedGenerationMethods.includes('generateContent')
@@ -76,7 +80,6 @@ app.post('/api/submit-interview', async (req, res) => {
             answersText += `שאלה: ${qObj ? qObj.text : ''}\nתשובה: ${ans.answer}\n\n`;
         });
 
-        // הנחיה באנגלית - עובדת הרבה יותר טוב ומונעת בלבול של המודל
         const promptText = `
         You are an HR expert for Adidas. Analyze this interview data.
         
@@ -104,7 +107,6 @@ app.post('/api/submit-interview', async (req, res) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: promptText }] }],
-                // הגדרות בטיחות שמונעות חסימות שווא
                 safetySettings: [
                     { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
                     { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -116,15 +118,12 @@ app.post('/api/submit-interview', async (req, res) => {
 
         const aiData = await response.json();
 
-        // בדיקת תקינות התשובה
         if (!aiData.candidates || !aiData.candidates[0] || !aiData.candidates[0].content) {
             console.error("❌ שגיאה: ה-AI החזיר תשובה ריקה. פרטים:", JSON.stringify(aiData));
             throw new Error("AI Blocked or Empty");
         }
 
         let aiText = aiData.candidates[0].content.parts[0].text;
-        
-        // ניקוי סימנים מיותרים
         aiText = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
         console.log("📝 תשובת AI:", aiText);
 
@@ -161,7 +160,6 @@ app.post('/api/submit-interview', async (req, res) => {
     } catch (error) {
         console.error("System Error:", error);
         
-        // גיבוי: שולח שגיאה לאקסל במקום לאבד את המידע
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
              fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
@@ -182,8 +180,7 @@ app.post('/api/submit-interview', async (req, res) => {
     }
 });
 
-// הפעלת השרת + זיהוי מודל
 app.listen(PORT, async () => {
     console.log(`Server is running on port ${PORT}`);
-    await findWorkingModel(); // קריטי לזיהוי המודל הנכון
+    await findWorkingModel();
 });
