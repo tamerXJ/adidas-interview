@@ -1,107 +1,83 @@
 const express = require('express');
-const path = require('path');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 
+// === כאן תדביק את ה-API KEY שהעתקת מגוגל ===
+const GOOGLE_API_KEY = AIzaSyCxnkFhIAtgKVOFM4JfRZbjS-0kNm7gYOA; 
+
+const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-pro"});
+
 app.use(express.json());
 app.use(express.static('public'));
 
-// === מאגר השאלות המעודכן לאדידס ===
 const questions = [
-    // 1. חיבור למותג (פתיחה)
-    { 
-        id: 1, 
-        text: "למה בחרת להגיש מועמדות דווקא לאדידס, ומה החיבור שלך לספורט?", 
-        type: "text" 
-    },
-
-    // 2. מכירות ושכנוע (הכסף)
-    { 
-        id: 2, 
-        text: "לקוח מתלבט לגבי נעל ריצה מקצועית ויקרה (למשל Ultraboost). הוא טוען שזה יקר לו. איך תשכנע אותו שזו ההשקעה הנכונה?", 
-        type: "text" 
-    },
-
-    // 3. סיטואציה בשירות לקוחות (לחץ)
-    { 
-        id: 3, 
-        text: "החנות עמוסה מאוד, אתה לבד במחלקה, ו-3 לקוחות שונים פונים אליך לעזרה בו זמנית. איך תתעדף ותפעל?", 
-        type: "text" 
-    },
-
-    // 4. סיטואציה בשירות לקוחות (קונפליקט)
-    { 
-        id: 4, 
-        text: "לקוח נכנס כועס מאוד בטענה שנעליים שקנה לפני שבוע נקרעו. הוא מרים את הקול. איך תגיב ומה תעשה?", 
-        type: "text" 
-    },
-
-    // 5. היררכיה וקבלת מרות
-    { 
-        id: 5, 
-        text: "במהלך משמרת עמוסה, המנהל מבקש ממך לעזוב הכל ולבצע משימה שאתה פחות אוהב (כמו סידור מחסן או ניקיון). כיצד תגיב?", 
-        type: "text" 
-    },
-
-    // 6. נהלים וחוקים
-    { 
-        id: 6, 
-        text: "אדידס היא רשת בינלאומית עם נהלים קפדניים (משמעת, נהלי קופה, הופעה ייצוגית). איך אתה מסתדר עם עבודה לפי 'ספר חוקים' ברור?", 
-        type: "text" 
-    },
-
-    // 7. עבודת צוות
-    { 
-        id: 7, 
-        text: "ספר על מקרה שבו היה מתח או חוסר הסכמה בינך לבין חבר לצוות בעבודה. איך פתרתם את זה?", 
-        type: "text" 
-    },
-
-    // 8. לוגיסטיקה וזמינות
-    { 
-        id: 8, 
-        text: "האם יש לך רכב צמוד או דרך הגעה עצמאית למשמרות (כולל בסופי שבוע וחגים)?", 
-        type: "text" 
-    },
-    { 
-        id: 9, 
-        text: "מהי הזמינות שלך למשמרות? (כמה משמרות בשבוע, בקרים/ערבים)", 
-        type: "text" 
-    }
+    { id: 1, text: "למה בחרת להגיש מועמדות דווקא לאדידס, ומה החיבור שלך לספורט?", type: "text" },
+    { id: 2, text: "לקוח מתלבט לגבי נעל ריצה יקרה (Ultraboost). הוא טוען שזה יקר לו. איך תשכנע אותו?", type: "text" },
+    { id: 3, text: "החנות עמוסה, אתה לבד, ו-3 לקוחות פונים אליך בו זמנית. איך תפעל?", type: "text" },
+    { id: 4, text: "לקוח נכנס כועס וצועק שנעליים שקנה נקרעו. מה תעשה?", type: "text" },
+    { id: 5, text: "המנהל מבקש ממך לבצע משימה שאתה פחות אוהב (ניקיון/מחסן) בזמן לחץ. כיצד תגיב?", type: "text" },
+    { id: 6, text: "איך אתה מסתדר עם עבודה לפי נהלים קפדניים וחוקים ברורים?", type: "text" },
+    { id: 7, text: "ספר על מקרה של חוסר הסכמה עם חבר לצוות ואיך פתרתם את זה?", type: "text" },
+    { id: 8, text: "האם יש לך רכב צמוד/דרך הגעה עצמאית למשמרות?", type: "text" },
+    { id: 9, text: "מהי הזמינות שלך למשמרות?", type: "text" }
 ];
-
-// === נתיבים (Routes) ===
 
 app.get('/api/get-questions', (req, res) => {
     res.json(questions);
 });
 
-app.post('/api/submit-interview', (req, res) => {
+// === כאן קורה הקסם של הבינה המלאכותית ===
+app.post('/api/submit-interview', async (req, res) => {
     const { candidate, answers } = req.body;
     
-    // הדפסה לטרמינל בצורה ברורה
-    console.log("\n========================================");
-    console.log(`📄 ריאיון חדש התקבל: ${candidate.name}`);
-    console.log(`📞 טלפון: ${candidate.phone}`);
-    console.log(`🏠 עיר: ${candidate.city}`);
-    console.log("----------------------------------------");
+    console.log(`\n--- ריאיון חדש התקבל: ${candidate.name} ---`);
+
+    // 1. הכנת הטקסט לשליחה ל-Gemini
+    let promptForAI = `
+    אני מנהל סניף של אדידס (Adidas). 
+    התקבל מועמד חדש לעבודה, אני צריך שתנתח את התשובות שלו ותיתן חוות דעת מקצועית של מנהל משאבי אנוש.
     
-    answers.forEach((ans, index) => {
-        // מציאת הטקסט של השאלה לפי ה-ID
-        const questionText = questions.find(q => q.id === ans.questionId).text;
-        console.log(`שאלה ${index + 1}: ${questionText}`);
-        console.log(`תשובה: ${ans.answer}`);
-        console.log("-");
+    פרטי המועמד:
+    שם: ${candidate.name}
+    עיר: ${candidate.city}
+    
+    השאלות והתשובות שענה:
+    `;
+
+    answers.forEach(ans => {
+        const qText = questions.find(q => q.id === ans.questionId).text;
+        promptForAI += `שאלה: ${qText}\nתשובה: ${ans.answer}\n\n`;
     });
-    console.log("========================================\n");
 
-    // הודעת סיכום למועמד
-    let summary = `תודה רבה ${candidate.name}.\n`;
-    summary += "התשובות שלך נשמרו בהצלחה במערכת הגיוס של אדידס עין שמר.\n";
-    summary += "אנחנו נעבור על הנתונים וניצור קשר במידה ויימצא זיווג מתאים למשרה.";
+    promptForAI += `
+    בבקשה תן לי סיכום קצר הכולל:
+    1. רמת הניסוח והרצינות.
+    2. התאמה לתפקיד מכירות ושירות (האם הוא שירותי? האם יודע למכור?).
+    3. התמודדות עם לחץ ומרות.
+    4. סיכום: האם לזמן לראיון? (כן/לא/אולי).
+    `;
 
-    res.json({ message: summary });
+    // 2. שליחה ל-Gemini וקבלת תשובה
+    try {
+        const result = await model.generateContent(promptForAI);
+        const response = await result.response;
+        const aiAnalysis = response.text();
+
+        // 3. הדפסת הניתוח לטרמינל שלך
+        console.log("\n🤖 ניתוח Gemini AI למועמד:");
+        console.log("-----------------------------------");
+        console.log(aiAnalysis);
+        console.log("-----------------------------------\n");
+
+    } catch (error) {
+        console.error("שגיאה בקבלת ניתוח מ-Gemini:", error);
+    }
+
+    // תשובה ללקוח (נשאר רגיל)
+    res.json({ message: `תודה רבה ${candidate.name}, הפרטים התקבלו והועברו לבדיקה.` });
 });
 
 app.listen(PORT, () => {
