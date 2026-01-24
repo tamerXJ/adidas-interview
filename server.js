@@ -5,13 +5,9 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// ==========================================================
-// משתנים מ-Render (Environment Variables)
-// ==========================================================
+// משתנים מ-Render
 const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
-
-// הגדרות מייל
 const EMAIL_USER = process.env.EMAIL_USER;       
 const EMAIL_PASS = process.env.EMAIL_PASS;       
 const MANAGER_EMAIL = process.env.MANAGER_EMAIL; 
@@ -21,13 +17,9 @@ let ACTIVE_MODEL = "gemini-1.5-flash";
 app.use(express.json());
 app.use(express.static('public'));
 
-// הגדרת השליחה (Nodemailer)
 const transporter = nodemailer.createTransport({
     service: 'gmail',
-    auth: {
-        user: EMAIL_USER,
-        pass: EMAIL_PASS
-    }
+    auth: { user: EMAIL_USER, pass: EMAIL_PASS }
 });
 
 const questions = [
@@ -56,78 +48,44 @@ async function findWorkingModel() {
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
         const data = await response.json();
-        
         if (data.models) {
-            const availableModel = data.models.find(m => 
-                m.name.includes('gemini') && 
-                m.supportedGenerationMethods.includes('generateContent')
-            );
-
+            const availableModel = data.models.find(m => m.name.includes('gemini') && m.supportedGenerationMethods.includes('generateContent'));
             if (availableModel) {
                 ACTIVE_MODEL = availableModel.name.replace("models/", "");
                 console.log(`✅ מודל נבחר והוגדר אוטומטית: ${ACTIVE_MODEL}`);
-            } else {
-                console.log("⚠️ לא נמצא מודל ברשימה, נשאר עם ברירת המחדל.");
             }
         }
-    } catch (error) {
-        console.error("❌ שגיאה בבדיקת המודלים (אולי API KEY חסר?):", error);
-    }
+    } catch (error) { console.error("❌ שגיאה בבדיקת המודלים:", error); }
 }
 
 async function sendEmailAlert(candidateName, score, summary, phone) {
-    if (!EMAIL_USER || !EMAIL_PASS) {
-        console.log("⚠️ לא הוגדרו פרטי מייל ב-Render, מדלג על שליחה.");
-        return;
-    }
-
+    if (!EMAIL_USER || !EMAIL_PASS) return;
     const htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; direction: rtl; text-align: right;">
-        <div style="text-align: center; margin-bottom: 20px;">
-             <img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" alt="Adidas" style="width: 80px;">
-        </div>
-        <h2 style="color: #000; text-align: center;">🌟 אותר מועמד (בדיקת מערכת)</h2>
-        <hr style="border: 0; border-top: 2px solid #000;">
-        
-        <p style="font-size: 16px;"><strong>שם המועמד:</strong> ${candidateName}</p>
-        <p style="font-size: 16px;"><strong>טלפון:</strong> ${phone}</p>
-        <p style="font-size: 16px;"><strong>ציון התאמה:</strong> <span style="background-color: #000; color: #fff; padding: 2px 8px; border-radius: 4px;">${score}/10</span></p>
-        
-        <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin-top: 15px;">
-            <strong>סיכום הראיון:</strong><br>
-            ${summary}
-        </div>
-
-        <div style="text-align: center; margin-top: 20px;">
-            <a href="${GOOGLE_SHEET_URL}" style="background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; font-weight: bold; border-radius: 5px;">מעבר לאקסל המלא</a>
-        </div>
-
-        <p style="margin-top: 20px; font-size: 12px; color: #666; text-align: center;">
-            הודעה זו נשלחה אוטומטית ממערכת הגיוס של אדידס
-        </p>
-    </div>
-    `;
-
+    <div style="font-family: Arial, sans-serif; direction: rtl; text-align: right; padding: 20px; border: 1px solid #ddd;">
+        <h2 style="color: #000;">🌟 אותר מועמד (בדיקה)</h2>
+        <p><strong>שם:</strong> ${candidateName}</p>
+        <p><strong>טלפון:</strong> ${phone}</p>
+        <p><strong>ציון:</strong> ${score}</p>
+        <hr>
+        <p>${summary}</p>
+        <a href="${GOOGLE_SHEET_URL}">לאקסל המלא</a>
+    </div>`;
     try {
         await transporter.sendMail({
-            from: `"Adidas Recruiting AI" <${EMAIL_USER}>`,
+            from: `"Adidas AI" <${EMAIL_USER}>`,
             to: MANAGER_EMAIL,
-            subject: `🔔 בדיקה: מועמד חדש (${candidateName}) - ציון ${score}`,
+            subject: `🔔 מועמד חדש: ${candidateName} (ציון ${score})`,
             html: htmlContent
         });
-        console.log("📨 מייל התראה נשלח בהצלחה!");
-    } catch (error) {
-        console.error("❌ שגיאה בשליחת מייל:", error);
-    }
+        console.log("📨 מייל נשלח!");
+    } catch (error) { console.error("❌ שגיאה בשליחת מייל:", error); }
 }
 
-app.get('/api/get-questions', (req, res) => {
-    res.json(questions);
-});
+app.get('/api/get-questions', (req, res) => { res.json(questions); });
 
 app.post('/api/submit-interview', async (req, res) => {
     const { candidate, answers } = req.body;
-    console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name} (מודל: ${ACTIVE_MODEL})...`);
+    console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name}...`);
 
     try {
         let answersText = "";
@@ -136,18 +94,24 @@ app.post('/api/submit-interview', async (req, res) => {
             answersText += `שאלה: ${qObj ? qObj.text : ''}\nתשובה: ${ans.answer}\n\n`;
         });
 
+        // === התיקון הקריטי בהנחיה (PROMPT) ===
         const promptText = `
-        אתה מנהל גיוס מומחה של חברת אדידס (Adidas). נתח את הראיון של המועמד ${candidate.name}.
-        הנה התשובות:
+        You are a recruiting expert for Adidas. Analyze the following interview in Hebrew.
+        Candidate Name: ${candidate.name}
+        Answers:
         ${answersText}
+
+        IMPORTANT: Return the result ONLY as a valid JSON object.
+        The KEYS must be in English. The VALUES must be in Hebrew.
+        Do NOT wrap the JSON in markdown code blocks.
         
-        החזר תשובה אך ורק בפורמט JSON נקי (ללא סימון קוד), המכיל את השדות הבאים בעברית:
+        Required JSON structure:
         {
-          "score": "ציון מספרי 1-10 (מספר בלבד)",
-          "general": "פסקה קצרה על הרושם הכללי והאישיות",
-          "strengths": "רשימת נקודות חוזק בולטות",
-          "weaknesses": "רשימת חולשות, סיכונים או חשד לחוסר אמינות",
-          "recommendation": "כן/לא/לשיקול דעת"
+          "score": 5, // A number between 1-10
+          "general": "Summary of personality...",
+          "strengths": "List of strengths...",
+          "weaknesses": "List of weaknesses...",
+          "recommendation": "Yes/No"
         }
         `;
 
@@ -159,20 +123,23 @@ app.post('/api/submit-interview', async (req, res) => {
 
         const aiData = await aiResponse.json();
         let aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        
+        // הדפסה ללוג כדי שנראה מה ה-AI החזיר במקרה של תקלה
+        console.log("🔍 תשובה גולמית מה-AI:", aiText);
+
         aiText = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
         
-        let analysis = { score: 0, general: "שגיאה" };
+        let analysis = { score: 0, general: "שגיאה בפענוח", strengths: "-", weaknesses: "-", recommendation: "-" };
 
         try {
             analysis = JSON.parse(aiText);
             analysis.score = parseInt(analysis.score) || 0;
         } catch (e) {
-            console.error("Failed to parse AI JSON", e);
+            console.error("❌ שגיאה בפענוח ה-JSON:", e);
         }
 
         console.log(`🤖 ציון: ${analysis.score}`);
 
-        // === שינוי לבדיקה: שולח מייל אם הציון הוא 1 ומעלה ===
         if (analysis.score >= 1) {
             await sendEmailAlert(candidate.name, analysis.score, analysis.general, candidate.phone);
         }
