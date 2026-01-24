@@ -6,17 +6,16 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ==========================================================
-// משיכת משתנים מ-Render (Environment Variables)
+// משתנים מ-Render (Environment Variables)
 // ==========================================================
 const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
 
 // הגדרות מייל
-const EMAIL_USER = process.env.EMAIL_USER;       // המייל השולח
-const EMAIL_PASS = process.env.EMAIL_PASS;       // סיסמת האפליקציה (16 תווים)
-const MANAGER_EMAIL = process.env.MANAGER_EMAIL; // המייל שמקבל את ההתראות
+const EMAIL_USER = process.env.EMAIL_USER;       
+const EMAIL_PASS = process.env.EMAIL_PASS;       
+const MANAGER_EMAIL = process.env.MANAGER_EMAIL; 
 
-// משתנה למודל הפעיל (ברירת מחדל)
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
 app.use(express.json());
@@ -52,7 +51,6 @@ const questions = [
     { id: 8, text: "לסיום: למה בחרת דווקא באדידס ולא בחנות אופנה רגילה?", type: "text" }
 ];
 
-// === הפונקציה החכמה לבחירת מודל ===
 async function findWorkingModel() {
     console.log("🔍 מחפש מודל זמין בחשבון Google AI...");
     try {
@@ -60,7 +58,6 @@ async function findWorkingModel() {
         const data = await response.json();
         
         if (data.models) {
-            // מחפש מודל Gemini שתומך ביצירת תוכן
             const availableModel = data.models.find(m => 
                 m.name.includes('gemini') && 
                 m.supportedGenerationMethods.includes('generateContent')
@@ -78,7 +75,6 @@ async function findWorkingModel() {
     }
 }
 
-// === פונקציה לשליחת מייל מעוצב למנהל ===
 async function sendEmailAlert(candidateName, score, summary, phone) {
     if (!EMAIL_USER || !EMAIL_PASS) {
         console.log("⚠️ לא הוגדרו פרטי מייל ב-Render, מדלג על שליחה.");
@@ -90,7 +86,7 @@ async function sendEmailAlert(candidateName, score, summary, phone) {
         <div style="text-align: center; margin-bottom: 20px;">
              <img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" alt="Adidas" style="width: 80px;">
         </div>
-        <h2 style="color: #000; text-align: center;">🌟 אותר מועמד מוביל!</h2>
+        <h2 style="color: #000; text-align: center;">🌟 אותר מועמד (בדיקת מערכת)</h2>
         <hr style="border: 0; border-top: 2px solid #000;">
         
         <p style="font-size: 16px;"><strong>שם המועמד:</strong> ${candidateName}</p>
@@ -116,7 +112,7 @@ async function sendEmailAlert(candidateName, score, summary, phone) {
         await transporter.sendMail({
             from: `"Adidas Recruiting AI" <${EMAIL_USER}>`,
             to: MANAGER_EMAIL,
-            subject: `🎯 מועמד חדש עם ציון גבוה: ${candidateName} (${score})`,
+            subject: `🔔 בדיקה: מועמד חדש (${candidateName}) - ציון ${score}`,
             html: htmlContent
         });
         console.log("📨 מייל התראה נשלח בהצלחה!");
@@ -176,12 +172,11 @@ app.post('/api/submit-interview', async (req, res) => {
 
         console.log(`🤖 ציון: ${analysis.score}`);
 
-        // === שליחת מייל למנהל אם הציון גבוה ===
-        if (analysis.score >= 8) {
+        // === שינוי לבדיקה: שולח מייל אם הציון הוא 1 ומעלה ===
+        if (analysis.score >= 1) {
             await sendEmailAlert(candidate.name, analysis.score, analysis.general, candidate.phone);
         }
 
-        // שמירה באקסל
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
             await fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
@@ -208,7 +203,6 @@ app.post('/api/submit-interview', async (req, res) => {
     }
 });
 
-// הפעלת השרת + הרצת בדיקת המודלים
 app.listen(PORT, async () => {
     console.log(`Server is running on port ${PORT}`);
     await findWorkingModel();
