@@ -4,11 +4,13 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// 1. המפתח של ה-AI (כבר יש לך אותו)
+// ==========================================================
+// 1. הדבק את המפתח של ה-AI
 const API_KEY = "AIzaSyCFtrENytySOKTydsAs4if4LYWeMy_i2N0";
 
-// 2. הלינק לגוגל שיטס (מה שהעתקת הרגע)
+// 2. הדבק את הלינק של Apps Script
 const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwstjjPaN7ExPbXW0do-b6rnvfq6emZVGhMpt5RhyXlWkM0u-ZR3xNpayjrkTC3yUaWFQ/exec";
+// ==========================================================
 
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
@@ -27,7 +29,6 @@ const questions = [
     { id: 9, text: "מהי הזמינות שלך למשמרות? (כמה משמרות בשבוע, בקרים/ערבים)", type: "text" }
 ];
 
-// פונקציה למציאת מודל תקין
 async function findWorkingModel() {
     console.log("🔍 מחפש מודל זמין...");
     try {
@@ -58,19 +59,22 @@ app.post('/api/submit-interview', async (req, res) => {
             answersText += `שאלה: ${qObj ? qObj.text : ''}\nתשובה: ${ans.answer}\n\n`;
         });
 
+        // שינינו את ההנחיה כדי לקבל מבנה JSON מפורט
         const promptText = `
         אתה מנהל גיוס של אדידס. נתח את הראיון של ${candidate.name}.
         תשובות:
         ${answersText}
         
-        החזר תשובה אך ורק בפורמט JSON נקי (בלי המילה json בהתחלה ובלי מרכאות מיותרות), כזה:
+        החזר תשובה אך ורק בפורמט JSON נקי (ללא סימון קוד), המכיל את השדות הבאים בעברית:
         {
           "score": "ציון מספרי 1-10",
-          "summary": "סיכום מילולי קצר בעברית של החוזקות והחולשות"
+          "general": "פסקה על רושם כללי",
+          "strengths": "רשימת נקודות חוזק שזיהית",
+          "weaknesses": "רשימת נקודות לשיפור/סיכון",
+          "recommendation": "כן/לא/לשיקול דעת"
         }
         `;
 
-        // 1. קבלת ניתוח מה-AI
         const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -80,20 +84,23 @@ app.post('/api/submit-interview', async (req, res) => {
         const aiData = await aiResponse.json();
         let aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
         
-        // ניקוי הטקסט כדי שיהיה JSON תקין
+        // ניקוי
         aiText = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
         
-        let analysis = { score: "N/A", summary: "לא התקבל ניתוח" };
+        let analysis = { 
+            score: "0", general: "שגיאה", strengths: "-", weaknesses: "-", recommendation: "-" 
+        };
+
         try {
             analysis = JSON.parse(aiText);
         } catch (e) {
             console.error("Failed to parse AI JSON", e);
-            analysis.summary = aiText; // אם זה לא JSON, נשמור את כל הטקסט
+            analysis.general = "התקבל טקסט לא תקין מה-AI";
         }
 
-        console.log(`🤖 ציון: ${analysis.score}`);
+        console.log(`🤖 ציון: ${analysis.score} | המלצה: ${analysis.recommendation}`);
 
-        // 2. שליחה לגוגל שיטס (הקסם קורה כאן)
+        // שליחה לגוגל שיטס - עכשיו עם כל השדות
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
             await fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
@@ -103,10 +110,13 @@ app.post('/api/submit-interview', async (req, res) => {
                     phone: candidate.phone,
                     city: candidate.city,
                     score: analysis.score,
-                    summary: analysis.summary
+                    general: analysis.general,
+                    strengths: analysis.strengths,
+                    weaknesses: analysis.weaknesses,
+                    recommendation: analysis.recommendation
                 })
             });
-            console.log("✅ הנתונים נשמרו באקסל!");
+            console.log("✅ הנתונים המפורטים נשמרו באקסל!");
         }
 
         res.json({ message: `תודה ${candidate.name}, הריאיון התקבל בהצלחה!` });
