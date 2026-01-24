@@ -5,9 +5,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ==========================================================
-// שלב קריטי: תמחק את הטקסט למטה ותדביק את המפתח *החדש* שלך בתוך המרכאות
-// אל תפרסם את המפתח החדש בצ'אט!
-const API_KEY = "AIzaSyAMxGeSPFpgvnGS-7IBOCJcLX1GDdGRcJY";
+// 🔴 חובה: הדבק כאן את המפתח החדש שלך בתוך המרכאות
+const API_KEY = "AIzaSyAMxGeSPFpgvnGS-7IBOCJcLX1GDdGRcJY"; 
 // ==========================================================
 
 app.use(express.json());
@@ -57,8 +56,8 @@ app.post('/api/submit-interview', async (req, res) => {
         5. **המלצה**: לזמן לראיון? (כן/לא).
         `;
 
-        // שימוש במודל gemini-1.5-flash המעודכן
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+        // === התיקון כאן: שימוש ב-gemini-pro וגרסה v1beta (הכי נפוץ) ===
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -73,8 +72,14 @@ app.post('/api/submit-interview', async (req, res) => {
         const data = await response.json();
 
         if (data.error) {
-            console.error("Error from Google:", data.error);
+            console.error("Error from Google:", JSON.stringify(data.error, null, 2));
             throw new Error(data.error.message);
+        }
+
+        // בדיקה נוספת שהתשובה הגיעה בפורמט הנכון
+        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+            console.error("Unexpected response structure:", JSON.stringify(data, null, 2));
+            throw new Error("התקבלה תשובה ריקה מגוגל");
         }
 
         const analysis = data.candidates[0].content.parts[0].text;
