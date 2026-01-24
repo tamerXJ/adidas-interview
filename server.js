@@ -4,11 +4,18 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// משתנים מ-Render
+// בדיקת טעינת משתנים
 const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
 
-let ACTIVE_MODEL = "gemini-1.5-flash"; 
+if (!API_KEY) {
+    console.error("❌ CRITICAL ERROR: API_KEY is missing in Render Environment Variables!");
+} else {
+    console.log("✅ API_KEY loaded successfully (starts with: " + API_KEY.substring(0, 5) + "...)");
+}
+
+// שימוש במודל קבוע וידוע כדי למנוע תקלות חיפוש
+const FIXED_MODEL = "gemini-1.5-flash"; 
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -34,30 +41,11 @@ const questions = [
     { id: 8, text: "לסיום: למה בחרת דווקא באדידס ולא בחנות אופנה רגילה?", type: "text" }
 ];
 
-async function findWorkingModel() {
-    console.log("🔍 מחפש מודל זמין...");
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
-        const data = await response.json();
-        if (data.models) {
-            const availableModel = data.models.find(m => m.name.includes('gemini') && m.supportedGenerationMethods.includes('generateContent'));
-            if (availableModel) {
-                ACTIVE_MODEL = availableModel.name.replace("models/", "");
-                console.log(`✅ מודל נבחר: ${ACTIVE_MODEL}`);
-            }
-        }
-    } catch (error) { console.error("Error finding model", error); }
-}
-
-// === פונקציית עזר לניקוי ה-JSON ===
+// ניקוי JSON
 function cleanJSON(text) {
-    // 1. הסרת סימוני Markdown כמו ```json או ```
     text = text.replace(/```json/g, "").replace(/```/g, "");
-    
-    // 2. מציאת הסוגריים המסולסלים הראשונים והאחרונים
     const firstBrace = text.indexOf('{');
     const lastBrace = text.lastIndexOf('}');
-    
     if (firstBrace !== -1 && lastBrace !== -1) {
         return text.substring(firstBrace, lastBrace + 1);
     }
@@ -71,13 +59,18 @@ app.post('/api/submit-interview', async (req, res) => {
     console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name}...`);
 
     try {
+        // בניית הטקסט ל-AI
         let answersText = "";
         answers.forEach((ans) => {
             const qObj = questions.find(q => q.id === ans.questionId);
-            answersText += `Question: ${qObj ? qObj.text : ''}\nAnswer: ${ans.answer}\n\n`;
+            answersText += `Question: ${qObj ? qObj.text : 'Unknown'}\nAnswer: ${ans.answer}\n\n`;
         });
 
-        // ההנחיה המדויקת ביותר למניעת תקלות
+        // בדיקה שאנחנו לא שולחים טקסט ריק
+        if (answersText.trim() === "") {
+            console.error("❌ Error: Answers text is empty!");
+        }
+
         const promptText = `
         You are a recruiting expert for Adidas. Analyze the interview below.
         
@@ -86,7 +79,7 @@ app.post('/api/submit-interview', async (req, res) => {
         ${answersText}
 
         INSTRUCTIONS:
-        1. Analyze the candidate based on availability, service skills, and sales potential.
+        1. Analyze availability (Questions 1-2) and service skills.
         2. Output MUST be a valid JSON object.
         3. Do NOT add any text before or after the JSON.
         4. Keys MUST be in English. Values MUST be in Hebrew.
@@ -101,28 +94,36 @@ app.post('/api/submit-interview', async (req, res) => {
         }
         `;
 
-        const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${API_KEY}`, {
+        // שליחה ל-Google AI עם בדיקת שגיאות
+        console.log(`📤 שולח בקשה למודל: ${FIXED_MODEL}...`);
+        
+        const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${FIXED_MODEL}:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
         });
 
+        // === כאן התיקון הגדול: הדפסת השגיאה המדויקת ===
+        if (!aiResponse.ok) {
+            const errorText = await aiResponse.text();
+            console.error("❌ GOOGLE API ERROR:", errorText);
+            console.error("Status:", aiResponse.status);
+            throw new Error("Failed to get response from AI");
+        }
+
         const aiData = await aiResponse.json();
         let aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
 
-        // === הדפסה ללוג כדי לראות מה הבעיה אם תהיה ===
         console.log("🔍 Raw AI Response:", aiText);
 
-        // === ניקוי אגרסיבי ===
         const cleanedText = cleanJSON(aiText);
-
         let analysis = { score: 0, general: "שגיאה בפענוח", strengths: "-", weaknesses: "-", recommendation: "-" };
 
         try {
             analysis = JSON.parse(cleanedText);
             analysis.score = parseInt(analysis.score) || 0;
         } catch (e) {
-            console.error("❌ JSON Parse Failed. Cleaned text was:", cleanedText);
+            console.error("❌ JSON Parse Failed. Text was:", cleanedText);
         }
 
         console.log(`🤖 ציון סופי: ${analysis.score}`);
@@ -148,12 +149,13 @@ app.post('/api/submit-interview', async (req, res) => {
         res.json({ message: "OK" });
 
     } catch (error) {
-        console.error("System Error:", error);
+        console.error("🔥 System Error:", error.message);
         res.json({ message: "Error" });
     }
 });
 
 app.listen(PORT, async () => {
     console.log(`Server is running on port ${PORT}`);
-    await findWorkingModel();
+    // ביטלנו את החיפוש האוטומטי כדי למנוע תקלות כרגע
+    console.log(`Using hardcoded model: ${FIXED_MODEL}`);
 });
