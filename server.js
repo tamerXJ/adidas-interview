@@ -16,7 +16,7 @@ let ACTIVE_MODEL = "gemini-1.5-flash";
 app.use(express.json());
 app.use(express.static('public'));
 
-// === רשימת השאלות הסופית (כולל רכב וזמינות) ===
+// === רשימת השאלות הסופית (נקי, ללא שאלת כנות) ===
 const questions = [
     { 
         id: 1, 
@@ -78,6 +78,7 @@ app.post('/api/submit-interview', async (req, res) => {
             answersText += `שאלה: ${qObj ? qObj.text : ''}\nתשובה: ${ans.answer}\n\n`;
         });
 
+        // === התיקון הקריטי: הנחיה קשוחה באנגלית למניעת תקלות JSON ===
         const promptText = `
         You are a recruiting expert for Adidas. Analyze the following interview in Hebrew.
         Candidate Name: ${candidate.name}
@@ -85,20 +86,22 @@ app.post('/api/submit-interview', async (req, res) => {
         ${answersText}
 
         Specific Analysis Instructions:
-        1. **Availability Check:** Check Question 1 (Health/Hours) and Question 2 (Transportation). If there are issues, mark as a risk.
+        1. **Availability Check:** Check Question 1 (Health) and Question 2 (Car). If they indicate limits, mark as risk.
         2. **Service & Sales:** Look for empathy and sales skills in the simulation.
 
         IMPORTANT: Return the result ONLY as a valid JSON object.
-        The KEYS must be in English. The VALUES must be in Hebrew.
+        The KEYS must be in English (e.g., "score", "general"). 
+        The VALUES must be in Hebrew.
+        Do NOT translate the keys!
         Do NOT wrap the JSON in markdown code blocks.
         
         Required JSON structure:
         {
-          "score": 5, // A number between 1-10
-          "general": "Summary of personality and impression",
-          "strengths": "List of strengths",
-          "weaknesses": "List of weaknesses (mention transportation/availability issues here)",
-          "recommendation": "Yes/No/Maybe"
+          "score": 5, // A pure number between 1-10
+          "general": "Hebrew summary here...",
+          "strengths": "Hebrew list...",
+          "weaknesses": "Hebrew list...",
+          "recommendation": "Hebrew text (Yes/No)"
         }
         `;
 
@@ -111,16 +114,18 @@ app.post('/api/submit-interview', async (req, res) => {
         const aiData = await aiResponse.json();
         let aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
         
+        // ניקוי הקוד
         aiText = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
         
         let analysis = { score: 0, general: "שגיאה", strengths: "-", weaknesses: "-", recommendation: "-" };
 
         try {
             analysis = JSON.parse(aiText);
+            // המרה כפויה למספר כדי למנוע טעויות
             analysis.score = parseInt(analysis.score) || 0;
         } catch (e) {
             console.error("Failed to parse AI JSON", e);
-            console.log("Raw Response:", aiText);
+            console.log("Raw Response was:", aiText); // להבין למה זה נכשל אם יקרה שוב
         }
 
         console.log(`🤖 ציון: ${analysis.score} | המלצה: ${analysis.recommendation}`);
