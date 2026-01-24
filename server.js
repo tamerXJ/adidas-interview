@@ -1,16 +1,11 @@
 require('dotenv').config();
 const express = require('express');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// === הגדרת הבינה המלאכותית ===
-// המפתח שלך מוטמע כאן בצורה תקינה
-const genAI = new GoogleGenerativeAI("AIzaSyCxnkFhIAtgKVOFM4JfRZbjS-0kNm7gYOA");
-
-// שימוש במודל gemini-pro (הכי יציב לניתוח טקסט)
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+// המפתח שלך
+const API_KEY = "AIzaSyCxnkFhIAtgKVOFM4JfRZbjS-0kNm7gYOA";
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -37,6 +32,7 @@ app.post('/api/submit-interview', async (req, res) => {
     console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name}...`);
 
     try {
+        // 1. הכנת הטקסט לבינה המלאכותית
         let answersText = "";
         answers.forEach((ans) => {
             const questionObj = questions.find(q => q.id === ans.questionId);
@@ -44,7 +40,7 @@ app.post('/api/submit-interview', async (req, res) => {
             answersText += `שאלה: ${qText}\nתשובה: ${ans.answer}\n\n`;
         });
 
-        const prompt = `
+        const promptText = `
         אתה מנהל גיוס מומחה של חברת אדידס (Adidas).
         קיבלת ראיון עבודה של מועמד בשם ${candidate.name} מעיר ${candidate.city}.
         
@@ -59,8 +55,28 @@ app.post('/api/submit-interview', async (req, res) => {
         5. **המלצה**: לזמן לראיון? (כן/לא).
         `;
 
-        const result = await model.generateContent(prompt);
-        const analysis = result.response.text();
+        // 2. שליחה ישירה לגוגל (עוקף את הספרייה הבעייתית)
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: promptText }]
+                }]
+            })
+        });
+
+        const data = await response.json();
+
+        // 3. פענוח התשובה
+        if (data.error) {
+            console.error("Error from Google:", data.error);
+            throw new Error(data.error.message);
+        }
+
+        const analysis = data.candidates[0].content.parts[0].text;
 
         console.log("========================================");
         console.log(`🤖 דוח בינה מלאכותית: ${candidate.name}`);
@@ -74,9 +90,8 @@ app.post('/api/submit-interview', async (req, res) => {
         res.json({ message: summary });
 
     } catch (error) {
-        console.error("Error with AI:", error);
-        // הודעת שגיאה ידידותית למקרה הצורך
-        res.json({ message: "הריאיון נקלט, אך הייתה בעיה בניתוח הנתונים." });
+        console.error("System Error:", error);
+        res.json({ message: "הריאיון נקלט בהצלחה. תודה רבה!" });
     }
 });
 
