@@ -12,7 +12,8 @@ const API_KEY = "AIzaSyCFtrENytySOKTydsAs4if4LYWeMy_i2N0";
 const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwstjjPaN7ExPbXW0do-b6rnvfq6emZVGhMpt5RhyXlWkM0u-ZR3xNpayjrkTC3yUaWFQ/exec";
 // ==========================================================
 
-let ACTIVE_MODEL = "gemini-1.5-flash"; 
+// נקבע קבוע את המודל הכי טוב ל-JSON
+const MODEL_NAME = "gemini-1.5-flash"; 
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -39,21 +40,6 @@ const questions = [
     { id: 8, text: "לסיום: למה בחרת דווקא באדידס ולא בחנות אופנה רגילה?", type: "text" }
 ];
 
-async function findWorkingModel() {
-    console.log("🔍 מחפש מודל זמין...");
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
-        const data = await response.json();
-        if (data.models) {
-            const availableModel = data.models.find(m => m.name.includes('gemini') && m.supportedGenerationMethods.includes('generateContent'));
-            if (availableModel) {
-                ACTIVE_MODEL = availableModel.name.replace("models/", "");
-                console.log(`✅ מודל נבחר: ${ACTIVE_MODEL}`);
-            }
-        }
-    } catch (error) { console.error("Error finding model", error); }
-}
-
 app.get('/api/get-questions', (req, res) => {
     res.json(questions);
 });
@@ -69,8 +55,6 @@ app.post('/api/submit-interview', async (req, res) => {
             answersText += `שאלה: ${qObj ? qObj.text : ''}\nתשובה: ${ans.answer}\n\n`;
         });
 
-        // === התיקון הקריטי בהנחיה (PROMPT) ===
-        // אנחנו מבקשים את המפתחות באנגלית בלבד כדי שהקוד יוכל לקרוא אותם
         const promptText = `
         You are an expert recruitment manager for Adidas. Analyze the interview below.
         
@@ -83,40 +67,42 @@ app.post('/api/submit-interview', async (req, res) => {
         2. Identify strengths and weaknesses based on their answers.
         3. Check reliability (Question 4).
         
-        CRITICAL: Return the response ONLY as a valid JSON object with the following specific ENGLISH keys (values should be in Hebrew):
-        {
-          "score": "Number between 1-10",
-          "general": "Short summary in Hebrew",
-          "strengths": "List of strengths in Hebrew",
-          "weaknesses": "List of weaknesses in Hebrew",
-          "recommendation": "Final decision (כן/לא/לשיקול דעת) in Hebrew"
-        }
-        
-        Do not include markdown formatting (like \`\`\`json). Just the raw JSON string.
+        Return the response as a JSON object with these keys:
+        score (1-10), general (Hebrew summary), strengths (Hebrew list), weaknesses (Hebrew list), recommendation (Hebrew decision).
         `;
 
-        const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${API_KEY}`, {
+        // שינוי קריטי: הוספת הגדרות בטיחות ופורמט JSON
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: promptText }] }],
+                // 1. מבטל את מסנני הבטיחות כדי למנוע חסימות שווא
+                safetySettings: [
+                    { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+                    { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+                ],
+                // 2. מכריח את המודל להחזיר JSON תקין
+                generationConfig: {
+                    responseMimeType: "application/json"
+                }
+            })
         });
 
-        const aiData = await aiResponse.json();
-        let aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        const aiData = await response.json();
         
-        // הדפסה ללוג כדי שנראה מה באמת קיבלנו (למקרה של תקלה)
+        // בדיקה מעמיקה ללוגים אם משהו משתבש
+        if (!aiData.candidates || !aiData.candidates[0]) {
+            console.error("❌ שגיאה: לא התקבלה תשובה מגוגל. הנה המידע המלא:", JSON.stringify(aiData, null, 2));
+            throw new Error("Empty AI Response");
+        }
+
+        let aiText = aiData.candidates[0].content.parts[0].text;
         console.log("📝 Raw AI Response:", aiText);
 
-        // ניקוי הקוד למקרה שה-AI בכל זאת הוסיף סימנים
-        aiText = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
-        
-        let analysis = { score: "0", general: "שגיאה בפענוח", strengths: "-", weaknesses: "-", recommendation: "-" };
-
-        try {
-            analysis = JSON.parse(aiText);
-        } catch (e) {
-            console.error("❌ Failed to parse JSON:", e);
-        }
+        let analysis = JSON.parse(aiText); // עכשיו זה בטוח JSON
 
         console.log(`🤖 ציון סופי: ${analysis.score}`);
 
@@ -142,11 +128,27 @@ app.post('/api/submit-interview', async (req, res) => {
 
     } catch (error) {
         console.error("System Error:", error);
+        // שולח נתונים בסיסיים לאקסל גם אם ה-AI נכשל, כדי שלא ילך לאיבוד
+        if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
+             fetch(GOOGLE_SHEET_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: candidate.name,
+                    phone: candidate.phone,
+                    city: candidate.city,
+                    score: "0",
+                    general: "תקלה בניתוח AI - יש לבדוק ידנית",
+                    strengths: "-",
+                    weaknesses: "-",
+                    recommendation: "-"
+                })
+            }).catch(e => console.error("Sheet Error:", e));
+        }
         res.json({ message: "הריאיון נקלט." });
     }
 });
 
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-    await findWorkingModel();
 });
