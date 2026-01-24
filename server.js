@@ -4,20 +4,12 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// ==========================================================
-// שינוי קריטי: אנחנו מושכים את המפתחות מהשרת (Environment Variables)
-// במקום לכתוב אותם כאן במפורש
+// שליפת המפתחות מהשרת
 const API_KEY = process.env.GEMINI_API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
-// ==========================================================
 
-// בדיקה שהמפתחות קיימים (רק כדי שנדע אם שכחנו להגדיר ב-Render)
-if (!API_KEY) {
-    console.error("❌ שגיאה קריטית: חסר מפתח GEMINI_API_KEY בהגדרות השרת!");
-}
-if (!GOOGLE_SHEET_URL) {
-    console.error("⚠️ אזהרה: חסר לינק GOOGLE_SHEET_URL בהגדרות השרת.");
-}
+if (!API_KEY) console.error("❌ שגיאה: חסר מפתח GEMINI_API_KEY");
+if (!GOOGLE_SHEET_URL) console.error("⚠️ אזהרה: חסר לינק GOOGLE_SHEET_URL");
 
 let ACTIVE_MODEL = "gemini-pro"; 
 
@@ -80,6 +72,7 @@ app.post('/api/submit-interview', async (req, res) => {
             answersText += `שאלה: ${qObj ? qObj.text : ''}\nתשובה: ${ans.answer}\n\n`;
         });
 
+        // === התיקון בהנחיה נמצא כאן ===
         const promptText = `
         You are an HR expert for Adidas. Analyze this interview data.
         
@@ -92,12 +85,17 @@ app.post('/api/submit-interview', async (req, res) => {
         2. Identify strengths and weaknesses.
         3. Assess reliability based on attendance habits.
 
-        Output ONLY valid JSON string (no markdown, no code blocks):
+        Output ONLY valid JSON string (no markdown, no code blocks).
+        IMPORTANT RULES FOR JSON:
+        - Do NOT use double quotes (") inside the Hebrew values. Use single quotes (') instead.
+        - Ensure the JSON is perfectly formatted.
+
+        Example format:
         {
           "score": "1-10",
-          "general": "Summary in Hebrew",
-          "strengths": "List in Hebrew",
-          "weaknesses": "List in Hebrew",
+          "general": "Summary text without double quotes",
+          "strengths": ["Strength 1", "Strength 2"],
+          "weaknesses": ["Weakness 1", "Weakness 2"],
           "recommendation": "כן/לא/לשיקול דעת"
         }
         `;
@@ -124,6 +122,8 @@ app.post('/api/submit-interview', async (req, res) => {
         }
 
         let aiText = aiData.candidates[0].content.parts[0].text;
+        
+        // ניקוי נוסף ליתר ביטחון
         aiText = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
         console.log("📝 תשובת AI:", aiText);
 
@@ -132,7 +132,8 @@ app.post('/api/submit-interview', async (req, res) => {
             analysis = JSON.parse(aiText);
         } catch (e) {
             console.error("Failed to parse JSON", e);
-            analysis = { score: "0", general: "תקלה בפענוח", strengths: "-", weaknesses: "-", recommendation: "-" };
+            // אם עדיין יש שגיאה, ננסה "לתקן" אותה ידנית או נחזיר שגיאה מסודרת
+            analysis = { score: "0", general: "התקבל פורמט לא תקין מה-AI (נסה שוב)", strengths: "-", weaknesses: "-", recommendation: "-" };
         }
 
         console.log(`🤖 ציון סופי: ${analysis.score}`);
@@ -147,8 +148,8 @@ app.post('/api/submit-interview', async (req, res) => {
                     city: candidate.city,
                     score: analysis.score,
                     general: analysis.general,
-                    strengths: analysis.strengths,
-                    weaknesses: analysis.weaknesses,
+                    strengths: Array.isArray(analysis.strengths) ? analysis.strengths.join(", ") : analysis.strengths, // המרה למחרוזת אם זה מערך
+                    weaknesses: Array.isArray(analysis.weaknesses) ? analysis.weaknesses.join(", ") : analysis.weaknesses,
                     recommendation: analysis.recommendation
                 })
             });
