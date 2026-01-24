@@ -4,30 +4,17 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// משתנים מ-Render
 const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
 
-// משתנה למודל הפעיל
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
-// === השינוי היחיד כאן: הוספת מגבלת 10mb לקבצים ===
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.static('public'));
 
 const questions = [
-    { 
-        id: 1, 
-        text: "העבודה באדידס דורשת עמידה ממושכת ומשמרות עד שעות הלילה המאוחרות (כולל סופ\"ש). האם יש לך מגבלה רפואית או אישית שמונעת ממך לעמוד בזה?", 
-        type: "select",
-        options: ["אין לי שום מגבלה - זמין/ה להכל", "יש לי מגבלה חלקית (יכול/ה לפרט בראיון)", "לא יכול/ה לעבוד בעמידה/לילות"]
-    },
-    { 
-        id: 2, 
-        text: "האם יש לך רכב צמוד או דרך הגעה עצמאית למשמרות (כולל בסופי שבוע וחגים כשאין תחב\"צ)?", 
-        type: "select",
-        options: ["כן, יש לי רכב/ניידות מלאה", "תחבורה ציבורית (מוגבל בסופ\"ש)", "אין לי דרך הגעה מסודרת"]
-    },
+    { id: 1, text: "העבודה באדידס דורשת עמידה ממושכת ומשמרות עד שעות הלילה המאוחרות (כולל סופ\"ש). האם יש לך מגבלה רפואית או אישית שמונעת ממך לעמוד בזה?", type: "select", options: ["אין לי שום מגבלה - זמין/ה להכל", "יש לי מגבלה חלקית (יכול/ה לפרט בראיון)", "לא יכול/ה לעבוד בעמידה/לילות"] },
+    { id: 2, text: "האם יש לך רכב צמוד או דרך הגעה עצמאית למשמרות (כולל בסופי שבוע וחגים כשאין תחב\"צ)?", type: "select", options: ["כן, יש לי רכב/ניידות מלאה", "תחבורה ציבורית (מוגבל בסופ\"ש)", "אין לי דרך הגעה מסודרת"] },
     { id: 3, text: "תאר/י סיטואציה מהעבר שבה עבדת תחת לחץ זמן גדול או תור של לקוחות. איך הגבת ומה עשית כדי להשתלט על המצב?", type: "text" },
     { id: 4, text: "לקוח פונה אליך בטון כועס ולא מכבד ליד אנשים אחרים. מה התגובה הראשונה שלך?", type: "text" },
     { id: 5, text: "כמה קל לך ללמוד מפרטים טכניים על מוצרים (כמו טכנולוגיית סוליות או סוגי בדים)?", type: "text" },
@@ -41,19 +28,16 @@ async function findWorkingModel() {
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
         if (!response.ok) { throw new Error(`שגיאה בגישה ל-API: ${response.status}`); }
-
         const data = await response.json();
         if (data.models) {
-            const preferredModel = data.models.find(m => m.name.includes('gemini-1.5-flash'));
-            const anyGemini = data.models.find(m => m.name.includes('gemini') && m.supportedGenerationMethods.includes('generateContent'));
-            const selected = preferredModel || anyGemini;
-
-            if (selected) {
-                ACTIVE_MODEL = selected.name.replace("models/", "");
-                console.log(`✅ מודל נבחר והוגדר אוטומטית: ${ACTIVE_MODEL}`);
+            const preferred = data.models.find(m => m.name.includes('gemini-1.5-flash'));
+            const any = data.models.find(m => m.name.includes('gemini') && m.supportedGenerationMethods.includes('generateContent'));
+            if (preferred || any) {
+                ACTIVE_MODEL = (preferred || any).name.replace("models/", "");
+                console.log(`✅ מודל נבחר: ${ACTIVE_MODEL}`);
             }
         }
-    } catch (error) { console.error("❌ שגיאה בבדיקת המודלים:", error.message); }
+    } catch (error) { console.error("❌ שגיאת מודל:", error.message); }
 }
 
 function cleanJSON(text) {
@@ -68,31 +52,36 @@ app.get('/api/get-questions', (req, res) => { res.json(questions); });
 
 app.post('/api/submit-interview', async (req, res) => {
     const { candidate, answers } = req.body;
-    console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name} (סניף: ${candidate.branch})...`);
+    console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name}...`);
 
     try {
         let answersText = "";
         answers.forEach((ans) => {
             const qObj = questions.find(q => q.id === ans.questionId);
-            answersText += `Question: ${qObj ? qObj.text : ''}\nAnswer: ${ans.answer}\n\n`;
+            // === הוספנו כאן את נתוני ה"רמאות" כדי שה-AI יראה אותם ===
+            answersText += `Question: ${qObj ? qObj.text : ''}\nAnswer: ${ans.answer}\n[METADATA: Time Taken=${ans.timeSeconds}s, Tab Switches=${ans.switchedTabs}]\n\n`;
         });
 
         const promptText = `
         You are a recruiting expert for Adidas. Analyze the interview below.
+        
         Candidate Name: ${candidate.name}
-        Interview Data:
+        Interview Data (includes metadata about time and tab switching):
         ${answersText}
 
         INSTRUCTIONS:
-        1. Analyze availability (Questions 1-2) and service skills.
-        2. Output MUST be a valid JSON object.
-        3. Do NOT add any text before or after the JSON.
+        1. Analyze availability and service skills.
+        2. **INTEGRITY CHECK:** Look at the [METADATA]. 
+           - If "Tab Switches" is > 2 for a single question, it indicates the user left the screen (possibly to use ChatGPT).
+           - If "Time Taken" is very short (< 5s) for a complex question, it indicates copy-paste.
+           - If suspicious behavior is found, MENTION IT in the "general" summary and LOWER the score significantly.
+        3. Output MUST be a valid JSON object.
         4. Keys MUST be in English. Values MUST be in Hebrew.
 
         JSON Structure:
         {
           "score": 5, 
-          "general": "Summary in Hebrew",
+          "general": "Summary in Hebrew (Include cheat warnings if any)",
           "strengths": "Strengths in Hebrew",
           "weaknesses": "Weaknesses in Hebrew",
           "recommendation": "Yes/No (in Hebrew)"
@@ -125,7 +114,6 @@ app.post('/api/submit-interview', async (req, res) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    // שולחים את כל המידע כולל נתוני הקובץ
                     ...candidate, 
                     score: analysis.score,
                     general: analysis.general,

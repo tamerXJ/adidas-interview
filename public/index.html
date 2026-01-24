@@ -3,50 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Adidas Ein Shemer - Interview</title>
+    <title>Career Portal - הגשת מועמדות</title>
     <style>
-        :root { --primary: #000000; --secondary: #ffffff; --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        /* === 🎨 אזור המיתוג === */
+        :root { --brand-color: #000000; --brand-bg: #ffffff; --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
         * { box-sizing: border-box; -webkit-user-select: none; user-select: none; cursor: default; }
-        input, select { -webkit-user-select: text !important; user-select: text !important; cursor: pointer !important; }
+        /* שינוי חשוב: מאפשרים בחירה רק בתיבות טקסט כדי למנוע העתקה של השאלות */
+        input, select { -webkit-user-select: text !important; user-select: text !important; cursor: text !important; }
+        
         body { 
             font-family: var(--font-main); text-align: center; margin: 0; padding: 0; background-color: #f4f4f4;
             background-image: url('https://images.microcms-assets.io/assets/1775a3633c8b428d9f011c6a758a8a5c/c0bb4fc727e24685be2532ae31ea82ea/A.jpg?w=1500&fm=webp'); 
             background-repeat: no-repeat; background-position: center center; background-size: cover; background-attachment: fixed;
             min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow-x: hidden; padding-bottom: 20px;
         }
+
         .container { 
-            background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); width: 100%; max-width: 500px; padding: 40px 30px; 
+            background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); width: 92%; max-width: 500px; padding: 40px 30px; 
             box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-radius: 16px; border: 1px solid rgba(0,0,0,0.05); position: relative; margin: 30px 20px 10px 20px; 
         }
+
         .bottom-logo { width: 120px; height: auto; margin-top: 15px; opacity: 0.9; }
         .footer-credit { margin-top: 30px; font-size: 10px; color: #999; }
-        h1 { color: var(--primary); font-size: 28px; margin-bottom: 8px; font-weight: 800; text-transform: uppercase; line-height: 1.2; }
-        h2 { font-size: 18px; color: var(--primary); font-weight: 700; margin-bottom: 30px; }
+        h1 { color: var(--brand-color); font-size: 28px; margin-bottom: 8px; font-weight: 800; text-transform: uppercase; line-height: 1.2; }
+        h2 { font-size: 18px; color: var(--brand-color); font-weight: 700; margin-bottom: 30px; opacity: 0.8; }
         label { display: block; text-align: right; font-weight: 600; font-size: 14px; margin-bottom: 6px; color: #333; }
-        input, select { 
+        
+        input[type="text"], input[type="tel"], select { 
             width: 100%; padding: 14px; margin-bottom: 8px; border: 1px solid #ddd; background-color: #fafafa; border-radius: 8px; font-size: 16px; font-family: var(--font-main);
             transition: all 0.3s ease; -webkit-appearance: none;
         }
-        input:focus, select:focus { outline: none; border-color: #000; background-color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        input:focus, select:focus { outline: none; border-color: var(--brand-color); background-color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: left 12px center; background-size: 16px; }
         .error-msg { color: #e74c3c; font-size: 12px; font-weight: 500; text-align: right; height: 18px; margin-bottom: 5px; visibility: hidden; }
-        .nav-buttons { display: flex; gap: 12px; margin-top: 25px; }
+        
         button { padding: 14px 20px; border: none; cursor: pointer; font-size: 16px; font-weight: 600; border-radius: 10px; transition: all 0.2s ease; }
-        #btn-next, #btn-start { background-color: #000; color: #fff; flex: 2; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        #btn-next, #btn-start { background-color: var(--brand-color); color: #fff; flex: 2; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        button:disabled { background-color: #ccc !important; cursor: not-allowed; box-shadow: none !important; }
+
         .hidden { display: none; }
         .progress-bar { height: 4px; background-color: #eee; margin-bottom: 30px; width: 100%; border-radius: 2px; overflow: hidden; }
-        .progress-fill { height: 100%; background-color: #000; width: 0%; transition: width 0.4s ease; }
+        .progress-fill { height: 100%; background-color: var(--brand-color); width: 0%; transition: width 0.4s ease; }
         #question-title { font-size: 19px; line-height: 1.5; font-weight: 600; color: #222; min-height: 60px; }
         .q-tag { font-size: 11px; font-weight: 800; color: #aaa; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; }
 
-        /* סגנון לכפתור העלאת קובץ */
-        .file-upload-container {
-            border: 2px dashed #ccc; padding: 20px; margin-bottom: 15px; border-radius: 8px; background: #fafafa; cursor: pointer; transition: 0.3s;
-        }
-        .file-upload-container:hover { border-color: #000; }
+        .file-upload-container { border: 2px dashed #ccc; padding: 20px; margin-bottom: 15px; border-radius: 8px; background: #fafafa; cursor: pointer; transition: 0.3s; }
+        .file-upload-container:hover { border-color: var(--brand-color); }
         input[type="file"] { display: none; }
-        .file-status { font-size: 13px; font-weight: bold; color: #000; margin-top: 5px; }
+        .file-status { font-size: 13px; font-weight: bold; color: var(--brand-color); margin-top: 5px; }
         
+        .legal-box { display: flex; align-items: flex-start; gap: 12px; margin-top: 15px; margin-bottom: 15px; text-align: right; font-size: 13px; color: #555; background: #f9f9f9; padding: 12px; border-radius: 8px; border: 1px solid #eee; }
+        .legal-box input[type="checkbox"] { -webkit-appearance: none; -moz-appearance: none; appearance: none; width: 24px; height: 24px; min-width: 24px; border: 2px solid #999; border-radius: 6px; background-color: #fff; cursor: pointer; margin-top: 2px; position: relative; }
+        .legal-box input[type="checkbox"]:checked { background-color: var(--brand-color); border-color: var(--brand-color); background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='20 6 9 17 4 12'%3e%3c/polyline%3e%3c/svg%3e"); background-size: 16px; background-repeat: no-repeat; background-position: center; }
+        .legal-link { color: var(--brand-color); text-decoration: underline; font-weight: bold; cursor: pointer; }
+        .nav-buttons { display: flex; gap: 12px; margin-top: 25px; }
         @media only screen and (max-width: 600px) { .container { width: 92%; padding: 30px 20px; margin-top: 50px; } }
     </style>
 </head>
@@ -54,7 +65,7 @@
 
     <div class="container">
         <div id="registration-section">
-            <h1>ADIDAS CAREERS<br>מערכת גיוס</h1>
+            <h1>ADIDAS EIN SHEMER<br>מערכת גיוס</h1>
             <h2>ברוכים הבאים</h2>
             
             <label>לאיזה סניף תרצה/י להגיש?</label>
@@ -73,11 +84,9 @@
             <label>שם מלא</label>
             <input type="text" id="full-name">
             <div id="error-name" class="error-msg">נא לכתוב בעברית בלבד</div>
-            
             <label>טלפון נייד</label>
             <input type="tel" id="phone" maxlength="12">
             <div id="error-phone" class="error-msg">מספר לא תקין</div>
-            
             <label>עיר מגורים</label>
             <input type="text" id="city">
             <div id="error-city" class="error-msg">נא לכתוב בעברית בלבד</div>
@@ -89,7 +98,14 @@
             </div>
             <input type="file" id="cv-file" accept=".pdf,.doc,.docx,.jpg,.png" onchange="handleFileSelect(event)">
 
-            <button id="btn-start" onclick="startInterview()" style="width:100%; margin-top:10px;">התחל ריאיון</button>
+            <div class="legal-box">
+                <input type="checkbox" id="legal-checkbox" onchange="toggleStartButton()">
+                <div>
+                    אני מאשר/ת את שמירת הפרטים, ומסכים/ה ל<span class="legal-link" onclick="alert('תנאי השימוש: המערכת מנטרת יציאה מהחלון ומודדת זמני מענה לצורך אמינות.')">תנאי השימוש ומדיניות הפרטיות</span>.
+                </div>
+            </div>
+
+            <button id="btn-start" onclick="startInterview()" style="width:100%; margin-top:10px;" disabled>התחל ריאיון</button>
         </div>
 
         <div id="quiz-section" class="hidden">
@@ -97,7 +113,7 @@
             <div class="q-tag">Question <span id="q-number">01</span></div>
             <div id="question-title">...</div>
             <div id="input-container" style="margin-top: 20px;">
-                <input type="text" id="answer-box" autocomplete="off" class="hidden" placeholder="כתוב את התשובה שלך כאן...">
+                <input type="text" id="answer-box" autocomplete="off" class="hidden" placeholder="כתוב את התשובה שלך כאן..." onpaste="return false;" ondrop="return false;">
                 <select id="select-box" class="hidden"></select>
             </div>
             <div id="error-answer" class="error-msg">נא למלא תשובה</div>
@@ -109,11 +125,8 @@
 
         <div id="finish-section" class="hidden">
             <h1 style="font-size: 28px;">תודה רבה</h1>
-            <p id="summary-result" style="font-size: 16px; color: #555; line-height: 1.6; margin-top:15px;">
-                הפרטים נקלטו בהצלחה.<br>אנו מודים לך על הזמן וההשקעה.
-            </p>
+            <p id="summary-result" style="font-size: 16px; color: #555; line-height: 1.6; margin-top:15px;">הפרטים נקלטו בהצלחה.</p>
         </div>
-
         <div class="footer-credit">Developed by Tamer Massarwi</div>
     </div> 
 
@@ -124,33 +137,45 @@
         let currentQIndex = 0;
         let myAnswers = [];
         let candidateDetails = {};
+        let cvFileData = null; let cvFileName = null; let cvFileMime = null;
         
-        // משתנים לשמירת הקובץ
-        let cvFileData = null;
-        let cvFileName = null;
-        let cvFileMime = null;
+        // === משתני אנטי-רמאות ===
+        let questionStartTime = 0;
+        let tabSwitchCount = 0;
+
+        // === מאזין ליציאה מהחלון ===
+        window.addEventListener('blur', function() {
+            // רק אם אנחנו באמצע הראיון (לא בהרשמה ולא בסיום)
+            if (!document.getElementById('quiz-section').classList.contains('hidden')) {
+                tabSwitchCount++;
+                console.log("User left window. Count: " + tabSwitchCount);
+            }
+        });
+
+        // === חסימת הדבקה אגרסיבית ===
+        const answerBox = document.getElementById('answer-box');
+        answerBox.addEventListener('paste', e => { e.preventDefault(); alert("הדבקת טקסט חסומה בראיון זה."); });
+        answerBox.addEventListener('copy', e => { e.preventDefault(); });
 
         function isHebrew(text) { return /^[\u0590-\u05FF\s0-9.,?!"'-]+$/.test(text); }
         function isValidPhone(phone) { return /^\d{10,}$/.test(phone); }
         function showError(id, show) { document.getElementById(id).style.visibility = show ? 'visible' : 'hidden'; }
 
-        // פונקציה לטיפול בקובץ
+        function toggleStartButton() {
+            const isChecked = document.getElementById('legal-checkbox').checked;
+            const btn = document.getElementById('btn-start');
+            btn.disabled = !isChecked; btn.style.opacity = isChecked ? "1" : "0.5";
+        }
+
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (file) {
-                if (file.size > 5 * 1024 * 1024) { // מגבלת 5MB
-                    alert("הקובץ גדול מדי (עד 5MB)");
-                    return;
-                }
+                if (file.size > 5 * 1024 * 1024) { alert("הקובץ גדול מדי"); return; }
                 document.getElementById('file-name').innerText = "נבחר: " + file.name;
-                
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    // שמירת הנתונים להמשך
-                    const base64String = e.target.result.split(',')[1]; // לוקחים רק את התוכן נטו
-                    cvFileData = base64String;
-                    cvFileName = file.name;
-                    cvFileMime = file.type;
+                    cvFileData = e.target.result.split(',')[1];
+                    cvFileName = file.name; cvFileMime = file.type;
                 };
                 reader.readAsDataURL(file);
             }
@@ -170,13 +195,7 @@
 
             if (!isValid) return;
 
-            // שמירת כל הפרטים כולל הקובץ
-            candidateDetails = { 
-                name, phone, city, branch,
-                cvData: cvFileData,
-                cvName: cvFileName,
-                cvMime: cvFileMime
-            };
+            candidateDetails = { name, phone, city, branch, cvData: cvFileData, cvName: cvFileName, cvMime: cvFileMime };
 
             document.getElementById('registration-section').classList.add('hidden');
             document.getElementById('quiz-section').classList.remove('hidden');
@@ -193,6 +212,10 @@
             document.getElementById('p-fill').style.width = ((currentQIndex) / questions.length) * 100 + '%';
             showError('error-answer', false);
 
+            // איפוס מונה הרמאות וזמן לשאלה הנוכחית
+            tabSwitchCount = 0;
+            questionStartTime = Date.now();
+
             if (currentQIndex > 0) {
                 document.getElementById('btn-prev').classList.remove('hidden');
                 document.getElementById('btn-prev').style.display = 'block';
@@ -203,7 +226,6 @@
 
             const textBox = document.getElementById('answer-box');
             const selectBox = document.getElementById('select-box');
-
             textBox.value = ''; selectBox.innerHTML = '';
 
             if (q.type === 'select') {
@@ -218,15 +240,16 @@
 
         function prevQuestion() {
             if (currentQIndex > 0) {
-                currentQIndex--;
-                myAnswers.pop(); 
-                showCurrentQuestion();
+                currentQIndex--; myAnswers.pop(); showCurrentQuestion();
             }
         }
 
         async function nextQuestion() {
             const q = questions[currentQIndex];
             let answerValue = "";
+            
+            // חישוב זמן מענה בשניות
+            const timeTaken = Math.round((Date.now() - questionStartTime) / 1000);
 
             if (q.type === 'select') {
                 const selectBox = document.getElementById('select-box'); answerValue = selectBox.value;
@@ -238,9 +261,15 @@
                 textBox.style.borderColor = "#ddd";
             }
 
-            myAnswers.push({ questionId: q.id, answer: answerValue });
+            // שמירת התשובה יחד עם נתוני הרמאות
+            myAnswers.push({ 
+                questionId: q.id, 
+                answer: answerValue,
+                timeSeconds: timeTaken,
+                switchedTabs: tabSwitchCount
+            });
+            
             currentQIndex++;
-
             if (currentQIndex < questions.length) { showCurrentQuestion(); } else { document.getElementById('p-fill').style.width = '100%'; await sendResults(); }
         }
 
@@ -257,7 +286,7 @@
             });
 
             document.querySelector('#finish-section h1').innerText = "תודה רבה";
-            document.getElementById('summary-result').innerHTML = `התשובות וקורות החיים נקלטו בהצלחה.<br><br>במידה ונראה התאמה לתפקיד,<br>נחזור אליך בהקדם להמשך התהליך.`;
+            document.getElementById('summary-result').innerHTML = `התשובות וקורות החיים נקלטו בהצלחה.<br><br>נחזור אליך בהקדם.`;
         }
         
         document.getElementById("answer-box").addEventListener("keyup", function(event) { if (event.key === "Enter") nextQuestion(); });
