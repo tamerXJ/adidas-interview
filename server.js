@@ -6,12 +6,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // === הגדרת הבינה המלאכותית ===
-// חשוב: שים את המפתח שלך בתוך המרכאות למטה במקום הטקסט בעברית
-// דוגמה: "AIzaSyCxnkFh..."
+// המפתח שלך מוטמע כאן בצורה תקינה
 const genAI = new GoogleGenerativeAI("AIzaSyCxnkFhIAtgKVOFM4JfRZbjS-0kNm7gYOA");
 
-// השינוי החשוב: שימוש במודל החדש gemini-1.5-flash
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// שימוש במודל gemini-pro (הכי יציב לניתוח טקסט)
+const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -76,7 +75,8 @@ app.post('/api/submit-interview', async (req, res) => {
 
     } catch (error) {
         console.error("Error with AI:", error);
-        res.json({ message: "הריאיון נקלט בהצלחה. תודה רבה!" });
+        // הודעת שגיאה ידידותית למקרה הצורך
+        res.json({ message: "הריאיון נקלט, אך הייתה בעיה בניתוח הנתונים." });
     }
 });
 
