@@ -4,7 +4,7 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// המפתח שלך
+// המפתח שלך (השארתי אותו כמו שהוא)
 const API_KEY = "AIzaSyCxnkFhIAtgKVOFM4JfRZbjS-0kNm7gYOA";
 
 app.use(express.json());
@@ -32,7 +32,7 @@ app.post('/api/submit-interview', async (req, res) => {
     console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name}...`);
 
     try {
-        // 1. הכנת הטקסט לבינה המלאכותית
+        // 1. הכנת הטקסט
         let answersText = "";
         answers.forEach((ans) => {
             const questionObj = questions.find(q => q.id === ans.questionId);
@@ -55,8 +55,8 @@ app.post('/api/submit-interview', async (req, res) => {
         5. **המלצה**: לזמן לראיון? (כן/לא).
         `;
 
-        // 2. שליחה ישירה לגוגל (עוקף את הספרייה הבעייתית)
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+        // 2. שליחה לגוגל - שינינו כאן ל-gemini-pro
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -70,12 +70,13 @@ app.post('/api/submit-interview', async (req, res) => {
 
         const data = await response.json();
 
-        // 3. פענוח התשובה
+        // בדיקת שגיאות
         if (data.error) {
             console.error("Error from Google:", data.error);
             throw new Error(data.error.message);
         }
 
+        // חילוץ התשובה
         const analysis = data.candidates[0].content.parts[0].text;
 
         console.log("========================================");
