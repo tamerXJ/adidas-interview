@@ -4,8 +4,11 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// המפתח שלך (השארתי אותו כמו שהוא)
-const API_KEY = "AIzaSyCxnkFhIAtgKVOFM4JfRZbjS-0kNm7gYOA";
+// ==========================================================
+// שלב קריטי: תמחק את הטקסט למטה ותדביק את המפתח *החדש* שלך בתוך המרכאות
+// אל תפרסם את המפתח החדש בצ'אט!
+const API_KEY = "AIzaSyAMxGeSPFpgvnGS-7IBOCJcLX1GDdGRcJY";
+// ==========================================================
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -32,7 +35,6 @@ app.post('/api/submit-interview', async (req, res) => {
     console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name}...`);
 
     try {
-        // 1. הכנת הטקסט
         let answersText = "";
         answers.forEach((ans) => {
             const questionObj = questions.find(q => q.id === ans.questionId);
@@ -55,8 +57,8 @@ app.post('/api/submit-interview', async (req, res) => {
         5. **המלצה**: לזמן לראיון? (כן/לא).
         `;
 
-        // 2. שליחה לגוגל - שינינו כאן ל-gemini-pro
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`, {
+        // שימוש במודל gemini-1.5-flash המעודכן
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -70,13 +72,11 @@ app.post('/api/submit-interview', async (req, res) => {
 
         const data = await response.json();
 
-        // בדיקת שגיאות
         if (data.error) {
             console.error("Error from Google:", data.error);
             throw new Error(data.error.message);
         }
 
-        // חילוץ התשובה
         const analysis = data.candidates[0].content.parts[0].text;
 
         console.log("========================================");
