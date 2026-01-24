@@ -11,7 +11,8 @@ const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
 // משתנה למודל הפעיל
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
-app.use(express.json({ limit: '10mb' }));
+// === השינוי היחיד כאן: הוספת מגבלת 10mb לקבצים ===
+app.use(express.json({ limit: '10mb' })); 
 app.use(express.static('public'));
 
 const questions = [
@@ -39,7 +40,6 @@ async function findWorkingModel() {
     console.log("🔍 סורק מודלים זמינים בחשבון Google AI...");
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
-        
         if (!response.ok) { throw new Error(`שגיאה בגישה ל-API: ${response.status}`); }
 
         const data = await response.json();
@@ -68,7 +68,6 @@ app.get('/api/get-questions', (req, res) => { res.json(questions); });
 
 app.post('/api/submit-interview', async (req, res) => {
     const { candidate, answers } = req.body;
-    // כאן הוספנו את שם הסניף ללוג
     console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name} (סניף: ${candidate.branch})...`);
 
     try {
@@ -126,10 +125,8 @@ app.post('/api/submit-interview', async (req, res) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: candidate.name,
-                    phone: candidate.phone,
-                    branch: candidate.branch, // <--- הוספנו את הסניף לשליחה
-                    city: candidate.city,
+                    // שולחים את כל המידע כולל נתוני הקובץ
+                    ...candidate, 
                     score: analysis.score,
                     general: analysis.general,
                     strengths: analysis.strengths,
