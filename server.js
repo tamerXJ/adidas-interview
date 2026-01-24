@@ -57,6 +57,21 @@ async function findWorkingModel() {
     }
 }
 
+// פונקציית עזר לניקוי ותיקון ה-JSON לפני הפענוח
+function cleanJsonString(str) {
+    // 1. מסיר סימוני קוד של Markdown
+    let cleaned = str.replace(/```json/g, "").replace(/```/g, "").trim();
+    
+    // 2. אם ה-AI השתמש בגרש בודד למפתחות ('key':), נחליף לגרש כפול ("key":)
+    // זהירות: זה תיקון בסיסי למקרים נפוצים
+    if (cleaned.startsWith("'") || cleaned.includes("'score'")) {
+         console.log("⚠️ ה-AI השתמש בגרש בודד. מנסה לתקן...");
+         cleaned = cleaned.replace(/'/g, '"'); // מחליף הכל לגרשיים כפולים
+         // אבל זה עלול להרוס טקסט פנימי, אז נסתמך בעיקר על ההנחיה (PROMPT)
+    }
+    return cleaned;
+}
+
 app.get('/api/get-questions', (req, res) => {
     res.json(questions);
 });
@@ -72,7 +87,7 @@ app.post('/api/submit-interview', async (req, res) => {
             answersText += `שאלה: ${qObj ? qObj.text : ''}\nתשובה: ${ans.answer}\n\n`;
         });
 
-        // === התיקון בהנחיה נמצא כאן ===
+        // === ההנחיה המדויקת ביותר ===
         const promptText = `
         You are an HR expert for Adidas. Analyze this interview data.
         
@@ -85,17 +100,21 @@ app.post('/api/submit-interview', async (req, res) => {
         2. Identify strengths and weaknesses.
         3. Assess reliability based on attendance habits.
 
-        Output ONLY valid JSON string (no markdown, no code blocks).
-        IMPORTANT RULES FOR JSON:
-        - Do NOT use double quotes (") inside the Hebrew values. Use single quotes (') instead.
-        - Ensure the JSON is perfectly formatted.
+        CRITICAL OUTPUT RULES:
+        1. Return ONLY valid JSON (RFC 8259 compatible).
+        2. You MUST use DOUBLE QUOTES (") for the JSON keys and string values.
+           CORRECT: {"score": "5", "general": "text"}
+           INCORRECT: {'score': '5', 'general': 'text'}
+        3. INSIDE the Hebrew content strings, do NOT use double quotes. Use SINGLE QUOTES (') for emphasis if needed.
+           CORRECT: "general": "He said 'yes' to the offer"
+           INCORRECT: "general": "He said "yes" to the offer"
 
-        Example format:
+        Expected JSON Structure:
         {
           "score": "1-10",
-          "general": "Summary text without double quotes",
-          "strengths": ["Strength 1", "Strength 2"],
-          "weaknesses": ["Weakness 1", "Weakness 2"],
+          "general": "Summary in Hebrew",
+          "strengths": ["List item 1", "List item 2"],
+          "weaknesses": ["List item 1", "List item 2"],
           "recommendation": "כן/לא/לשיקול דעת"
         }
         `;
@@ -123,17 +142,25 @@ app.post('/api/submit-interview', async (req, res) => {
 
         let aiText = aiData.candidates[0].content.parts[0].text;
         
-        // ניקוי נוסף ליתר ביטחון
-        aiText = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
-        console.log("📝 תשובת AI:", aiText);
+        // שימוש בפונקציית הניקוי
+        aiText = cleanJsonString(aiText);
+        console.log("📝 תשובת AI (אחרי ניקוי):", aiText);
 
         let analysis;
         try {
             analysis = JSON.parse(aiText);
         } catch (e) {
-            console.error("Failed to parse JSON", e);
-            // אם עדיין יש שגיאה, ננסה "לתקן" אותה ידנית או נחזיר שגיאה מסודרת
-            analysis = { score: "0", general: "התקבל פורמט לא תקין מה-AI (נסה שוב)", strengths: "-", weaknesses: "-", recommendation: "-" };
+            console.error("❌ Failed to parse JSON:", e.message);
+            // מנסה תיקון אגרסיבי אחרון אם הפענוח נכשל
+            try {
+                // מחליף את כל הגרשיים הבודדים בכפולים רק אם זה נראה כמו מפתח
+                const fixedJson = aiText.replace(/'/g, '"'); 
+                analysis = JSON.parse(fixedJson);
+                console.log("✅ הצלחנו לתקן את ה-JSON באופן אוטומטי!");
+            } catch (e2) {
+                // אם גם זה לא עבד - נחזיר שגיאה
+                analysis = { score: "0", general: "התקבל פורמט לא תקין מה-AI. בדוק לוגים.", strengths: "-", weaknesses: "-", recommendation: "-" };
+            }
         }
 
         console.log(`🤖 ציון סופי: ${analysis.score}`);
@@ -148,7 +175,7 @@ app.post('/api/submit-interview', async (req, res) => {
                     city: candidate.city,
                     score: analysis.score,
                     general: analysis.general,
-                    strengths: Array.isArray(analysis.strengths) ? analysis.strengths.join(", ") : analysis.strengths, // המרה למחרוזת אם זה מערך
+                    strengths: Array.isArray(analysis.strengths) ? analysis.strengths.join(", ") : analysis.strengths,
                     weaknesses: Array.isArray(analysis.weaknesses) ? analysis.weaknesses.join(", ") : analysis.weaknesses,
                     recommendation: analysis.recommendation
                 })
