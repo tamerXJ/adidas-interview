@@ -5,7 +5,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // === כאן תדביק את ה-API KEY שהעתקת מגוגל ===
-const GOOGLE_API_KEY = AIzaSyCxnkFhIAtgKVOFM4JfRZbjS-0kNm7gYOA; 
+const GOOGLE_API_KEY = "AIzaSyCxnkFhIAtgKVOFM4JfRZbjS-0kNm7gYOA"; 
 
 const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-pro"});
