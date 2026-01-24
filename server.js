@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 
 // ==========================================================
 // הדבק כאן את המפתח החדש שלך
-const API_KEY = "AIzaSyAMxGeSPFpgvnGS-7IBOCJcLX1GDdGRcJY";
+const API_KEY = "AIzaSyCFtrENytySOKTydsAs4if4LYWeMy_i2N0";
 // ==========================================================
 
 // משתנה שיחזיק את שם המודל שעובד
