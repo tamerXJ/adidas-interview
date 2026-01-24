@@ -34,7 +34,14 @@ const questions = [
     { id: 5, text: "כמה קל לך ללמוד מפרטים טכניים על מוצרים (כמו טכנולוגיית סוליות או סוגי בדים)?", type: "text" },
     { id: 6, text: "אחראי המשמרת ביקש ממך לבצע משימה (כמו ניקיון מחסן) בזמן שאתה באמצע מכירה ללקוח. איך תפעל?", type: "text" },
     { id: 7, text: "סימולציה: אני לקוח שנכנס לחנות ומחפש נעל ריצה, אבל אני לא מבין בזה כלום. אילו 2-3 שאלות תשאל אותי כדי למצוא לי את הנעל המושלמת?", type: "text" },
-    { id: 8, text: "לסיום: למה בחרת דווקא באדידס ולא בחנות אופנה רגילה?", type: "text" }
+    { id: 8, text: "לסיום: למה בחרת דווקא באדידס ולא בחנות אופנה רגילה?", type: "text" },
+    // === השאלה החדשה שהוספנו ===
+    { 
+        id: 9, 
+        text: "האם יש לך דרך הגעה עצמאית למשמרות (כולל בסופי שבוע וחגים כשאין תחבורה ציבורית)?", 
+        type: "select", 
+        options: ["כן, יש לי רכב/אופנוע צמוד", "אני גר/ה קרוב ומגיע/ה ברגל", "תלוי בתחבורה ציבורית", "אין לי סידור קבוע כרגע"]
+    }
 ];
 
 async function findWorkingModel() {
@@ -57,17 +64,10 @@ async function findWorkingModel() {
     }
 }
 
-// פונקציית עזר לניקוי ותיקון ה-JSON לפני הפענוח
 function cleanJsonString(str) {
-    // 1. מסיר סימוני קוד של Markdown
     let cleaned = str.replace(/```json/g, "").replace(/```/g, "").trim();
-    
-    // 2. אם ה-AI השתמש בגרש בודד למפתחות ('key':), נחליף לגרש כפול ("key":)
-    // זהירות: זה תיקון בסיסי למקרים נפוצים
     if (cleaned.startsWith("'") || cleaned.includes("'score'")) {
-         console.log("⚠️ ה-AI השתמש בגרש בודד. מנסה לתקן...");
-         cleaned = cleaned.replace(/'/g, '"'); // מחליף הכל לגרשיים כפולים
-         // אבל זה עלול להרוס טקסט פנימי, אז נסתמך בעיקר על ההנחיה (PROMPT)
+         cleaned = cleaned.replace(/'/g, '"'); 
     }
     return cleaned;
 }
@@ -87,27 +87,24 @@ app.post('/api/submit-interview', async (req, res) => {
             answersText += `שאלה: ${qObj ? qObj.text : ''}\nתשובה: ${ans.answer}\n\n`;
         });
 
-        // === ההנחיה המדויקת ביותר ===
+        // עדכנתי את ההנחיה שתבדוק גם את עניין התחבורה
         const promptText = `
-        You are an HR expert for Adidas. Analyze this interview data.
+        You are a recruitment manager for Adidas looking for JUNIOR / ENTRY-LEVEL sales assistants.
         
         Candidate: ${candidate.name}
         Answers:
         ${answersText}
 
-        Task:
-        1. Evaluate fit for sales position.
-        2. Identify strengths and weaknesses.
-        3. Assess reliability based on attendance habits.
+        Evaluation Guidelines:
+        1. This is an ENTRY-LEVEL role. Do NOT penalize for lack of prior experience.
+        2. Focus primarily on: Motivation, Availability, Service Attitude, and Willingness to learn.
+        3. Scoring: A candidate with a positive attitude and full availability should receive a HIGH score (7-9).
+        4. **Logistics Check:** Look at Question 9 (Transportation). If they rely on public transport but say they can work weekends (Question 1), mark this as a potential risk in "weaknesses".
 
         CRITICAL OUTPUT RULES:
-        1. Return ONLY valid JSON (RFC 8259 compatible).
-        2. You MUST use DOUBLE QUOTES (") for the JSON keys and string values.
-           CORRECT: {"score": "5", "general": "text"}
-           INCORRECT: {'score': '5', 'general': 'text'}
-        3. INSIDE the Hebrew content strings, do NOT use double quotes. Use SINGLE QUOTES (') for emphasis if needed.
-           CORRECT: "general": "He said 'yes' to the offer"
-           INCORRECT: "general": "He said "yes" to the offer"
+        1. Return ONLY valid JSON.
+        2. Use DOUBLE QUOTES (") for keys and values.
+        3. Do NOT use double quotes inside Hebrew strings (use single quotes).
 
         Expected JSON Structure:
         {
@@ -141,25 +138,19 @@ app.post('/api/submit-interview', async (req, res) => {
         }
 
         let aiText = aiData.candidates[0].content.parts[0].text;
-        
-        // שימוש בפונקציית הניקוי
         aiText = cleanJsonString(aiText);
-        console.log("📝 תשובת AI (אחרי ניקוי):", aiText);
+        console.log("📝 תשובת AI:", aiText);
 
         let analysis;
         try {
             analysis = JSON.parse(aiText);
         } catch (e) {
             console.error("❌ Failed to parse JSON:", e.message);
-            // מנסה תיקון אגרסיבי אחרון אם הפענוח נכשל
             try {
-                // מחליף את כל הגרשיים הבודדים בכפולים רק אם זה נראה כמו מפתח
                 const fixedJson = aiText.replace(/'/g, '"'); 
                 analysis = JSON.parse(fixedJson);
-                console.log("✅ הצלחנו לתקן את ה-JSON באופן אוטומטי!");
             } catch (e2) {
-                // אם גם זה לא עבד - נחזיר שגיאה
-                analysis = { score: "0", general: "התקבל פורמט לא תקין מה-AI. בדוק לוגים.", strengths: "-", weaknesses: "-", recommendation: "-" };
+                analysis = { score: "0", general: "התקבל פורמט לא תקין מה-AI.", strengths: "-", weaknesses: "-", recommendation: "-" };
             }
         }
 
