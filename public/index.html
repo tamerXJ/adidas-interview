@@ -5,243 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Adidas Ein Shemer - Interview</title>
     <style>
-        :root {
-            --primary: #000000;
-            --secondary: #ffffff;
-            --grey-light: #f0f0f0;
-            --grey-text: #666;
-            --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        * {
-            box-sizing: border-box;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-            cursor: default;
-        }
-
-        input, select {
-            -webkit-user-select: text !important;
-            -moz-user-select: text !important;
-            -ms-user-select: text !important;
-            user-select: text !important;
-            cursor: pointer !important;
-        }
-
+        :root { --primary: #000000; --secondary: #ffffff; --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        * { box-sizing: border-box; -webkit-user-select: none; user-select: none; cursor: default; }
+        input, select { -webkit-user-select: text !important; user-select: text !important; cursor: pointer !important; }
         body { 
-            font-family: var(--font-main);
-            text-align: center; 
-            margin: 0; padding: 0;
-            background-color: #f4f4f4;
-            
-            background-image: 
-                url('https://images.microcms-assets.io/assets/1775a3633c8b428d9f011c6a758a8a5c/c0bb4fc727e24685be2532ae31ea82ea/A.jpg?w=1500&fm=webp'); 
-            
-            background-repeat: no-repeat;
-            background-position: center center; 
-            background-size: cover; 
-            background-attachment: fixed;
-            
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            overflow-x: hidden;
-            padding-bottom: 20px;
+            font-family: var(--font-main); text-align: center; margin: 0; padding: 0; background-color: #f4f4f4;
+            background-image: url('https://images.microcms-assets.io/assets/1775a3633c8b428d9f011c6a758a8a5c/c0bb4fc727e24685be2532ae31ea82ea/A.jpg?w=1500&fm=webp'); 
+            background-repeat: no-repeat; background-position: center center; background-size: cover; background-attachment: fixed;
+            min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow-x: hidden; padding-bottom: 20px;
         }
-
         .container { 
-            background-color: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px); 
-            -webkit-backdrop-filter: blur(10px);
-            
-            width: 100%;
-            max-width: 500px;
-            padding: 40px 30px; 
-            
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
-            border-radius: 16px;
-            border: 1px solid rgba(0,0,0,0.05);
-            
-            position: relative;
-            margin: 30px 20px 10px 20px; 
+            background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); width: 100%; max-width: 500px; padding: 40px 30px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-radius: 16px; border: 1px solid rgba(0,0,0,0.05); position: relative; margin: 30px 20px 10px 20px; 
         }
-
-        /* === הלוגו הגדול === */
-        .bottom-logo {
-            width: 120px; 
-            height: auto;
-            margin-top: 15px;
-            opacity: 0.9;
-        }
-        
-        /* === הקרדיט === */
-        .footer-credit { 
-            margin-top: 30px; 
-            font-size: 10px; 
-            color: #999;
-            font-weight: 400; 
-            letter-spacing: 0.5px;
-        }
-
-        h1 {
-            color: var(--primary);
-            font-size: 28px;
-            margin-bottom: 8px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            line-height: 1.2;
-        }
-
-        h2 { 
-            font-size: 18px; 
-            color: var(--primary); 
-            font-weight: 700; 
-            margin-bottom: 30px; 
-        }
-
-        label { 
-            display: block; 
-            text-align: right; 
-            font-weight: 600; 
-            font-size: 14px; 
-            margin-bottom: 6px; 
-            color: #333; 
-        }
-        
+        .bottom-logo { width: 120px; height: auto; margin-top: 15px; opacity: 0.9; }
+        .footer-credit { margin-top: 30px; font-size: 10px; color: #999; }
+        h1 { color: var(--primary); font-size: 28px; margin-bottom: 8px; font-weight: 800; text-transform: uppercase; line-height: 1.2; }
+        h2 { font-size: 18px; color: var(--primary); font-weight: 700; margin-bottom: 30px; }
+        label { display: block; text-align: right; font-weight: 600; font-size: 14px; margin-bottom: 6px; color: #333; }
         input, select { 
-            width: 100%; 
-            padding: 14px; 
-            margin-bottom: 8px;
-            border: 1px solid #ddd; 
-            background-color: #fafafa;
-            border-radius: 8px;
-            font-size: 16px; 
-            font-family: var(--font-main);
-            transition: all 0.3s ease;
-            -webkit-appearance: none;
+            width: 100%; padding: 14px; margin-bottom: 8px; border: 1px solid #ddd; background-color: #fafafa; border-radius: 8px; font-size: 16px; font-family: var(--font-main);
+            transition: all 0.3s ease; -webkit-appearance: none;
         }
-        
-        input:focus, select:focus { 
-            outline: none; 
-            border-color: #000; 
-            background-color: #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        select {
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: left 12px center;
-            background-size: 16px;
-        }
-
-        .error-msg {
-            color: #e74c3c;
-            font-size: 12px;
-            font-weight: 500;
-            text-align: right;
-            height: 18px;
-            margin-bottom: 5px;
-            visibility: hidden;
-            opacity: 0.8;
-        }
-
-        .nav-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 25px;
-            flex-direction: row;
-        }
-
-        button { 
-            padding: 14px 20px; 
-            border: none; 
-            cursor: pointer; 
-            font-size: 16px; 
-            font-weight: 600;
-            border-radius: 10px;
-            transition: all 0.2s ease;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        #btn-next, #btn-start {
-            background-color: #000;
-            color: #fff;
-            flex: 2;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        #btn-next:active, #btn-start:active {
-            transform: scale(0.98);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .btn-back {
-            background-color: transparent;
-            color: #888;
-            border: 1px solid #ddd;
-            flex: 1;
-        }
-        
-        .btn-back:active {
-            background-color: #f0f0f0;
-            color: #000;
-        }
-
+        input:focus, select:focus { outline: none; border-color: #000; background-color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        select { background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: left 12px center; background-size: 16px; }
+        .error-msg { color: #e74c3c; font-size: 12px; font-weight: 500; text-align: right; height: 18px; margin-bottom: 5px; visibility: hidden; }
+        .nav-buttons { display: flex; gap: 12px; margin-top: 25px; }
+        button { padding: 14px 20px; border: none; cursor: pointer; font-size: 16px; font-weight: 600; border-radius: 10px; transition: all 0.2s ease; }
+        #btn-next, #btn-start { background-color: #000; color: #fff; flex: 2; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         .hidden { display: none; }
-        
-        .progress-bar { 
-            height: 4px; 
-            background-color: #eee; 
-            margin-bottom: 30px; 
-            width: 100%; 
-            border-radius: 2px;
-            overflow: hidden;
-        }
-        .progress-fill { 
-            height: 100%; 
-            background-color: #000; 
-            width: 0%; 
-            transition: width 0.4s ease; 
-            border-radius: 2px;
-        }
-
-        #question-title {
-            font-size: 19px;
-            line-height: 1.5;
-            font-weight: 600;
-            color: #222;
-            min-height: 60px;
-        }
-
-        .q-tag {
-            font-size: 11px;
-            font-weight: 800;
-            color: #aaa;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-        }
-
-        @media only screen and (max-width: 600px) {
-            .container { width: 92%; padding: 30px 20px; margin-top: 50px; }
-            h1 { font-size: 26px; }
-            button { padding: 16px; font-size: 17px; }
-        }
+        .progress-bar { height: 4px; background-color: #eee; margin-bottom: 30px; width: 100%; border-radius: 2px; overflow: hidden; }
+        .progress-fill { height: 100%; background-color: #000; width: 0%; transition: width 0.4s ease; }
+        #question-title { font-size: 19px; line-height: 1.5; font-weight: 600; color: #222; min-height: 60px; }
+        .q-tag { font-size: 11px; font-weight: 800; color: #aaa; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; }
+        @media only screen and (max-width: 600px) { .container { width: 92%; padding: 30px 20px; margin-top: 50px; } }
     </style>
 </head>
 <body>
 
     <div class="container">
         <div id="registration-section">
-            <h1>ADIDAS EIN SHEMER<br>מערכת גיוס</h1>
+            <h1>ADIDAS CAREERS<br>מערכת גיוס</h1>
             <h2>ברוכים הבאים</h2>
             
+            <label>לאיזה סניף תרצה/י להגיש?</label>
+            <select id="branch-select">
+                <option value="" disabled selected>בחר סניף מהרשימה...</option>
+                <option value="תל אביב - דיזנגוף סנטר">תל אביב - דיזנגוף סנטר</option>
+                <option value="נתניה - עיר ימים">נתניה - עיר ימים</option>
+                <option value="הרצליה - שבעת הכוכבים">הרצליה - שבעת הכוכבים</option>
+                <option value="חדרה - מול החוף">חדרה - מול החוף</option>
+                <option value="חיפה - גרנד קניון">חיפה - גרנד קניון</option>
+                <option value="ראשל״צ - קניון הזהב">ראשל״צ - קניון הזהב</option>
+                <option value="אילת - טיילת">אילת - טיילת</option>
+            </select>
+            <div id="error-branch" class="error-msg">נא לבחור סניף</div>
+
             <label>שם מלא</label>
             <input type="text" id="full-name">
             <div id="error-name" class="error-msg">נא לכתוב בעברית בלבד</div>
@@ -259,31 +78,23 @@
 
         <div id="quiz-section" class="hidden">
             <div class="progress-bar"><div id="p-fill" class="progress-fill"></div></div>
-            
-            <div class="q-tag">
-                Question <span id="q-number">01</span>
-            </div>
-            
+            <div class="q-tag">Question <span id="q-number">01</span></div>
             <div id="question-title">...</div>
-            
             <div id="input-container" style="margin-top: 20px;">
                 <input type="text" id="answer-box" autocomplete="off" class="hidden" placeholder="כתוב את התשובה שלך כאן...">
                 <select id="select-box" class="hidden"></select>
             </div>
-
             <div id="error-answer" class="error-msg">נא למלא תשובה</div>
-            
             <div class="nav-buttons">
                 <button id="btn-next" onclick="nextQuestion()">הבא</button>
-                <button id="btn-prev" class="btn-back hidden" onclick="prevQuestion()">חזרה</button>
+                <button id="btn-prev" class="btn-back hidden hidden" onclick="prevQuestion()" style="background:transparent; color:#888; border:1px solid #ddd; flex:1;">חזרה</button>
             </div>
         </div>
 
         <div id="finish-section" class="hidden">
             <h1 style="font-size: 28px;">תודה רבה</h1>
             <p id="summary-result" style="font-size: 16px; color: #555; line-height: 1.6; margin-top:15px;">
-                הפרטים נקלטו בהצלחה במערכת.<br>
-                אנו מודים לך על הזמן וההשקעה.
+                הפרטים נקלטו בהצלחה.<br>אנו מודים לך על הזמן וההשקעה.
             </p>
         </div>
 
@@ -303,18 +114,21 @@
         function showError(id, show) { document.getElementById(id).style.visibility = show ? 'visible' : 'hidden'; }
 
         async function startInterview() {
+            // הוספת לוגיקת בחירת סניף
+            const branch = document.getElementById('branch-select').value;
             const name = document.getElementById('full-name').value.trim();
             const phone = document.getElementById('phone').value.trim();
             const city = document.getElementById('city').value.trim();
             
             let isValid = true;
+            if (!branch) { showError('error-branch', true); isValid = false; } else showError('error-branch', false);
             if (!name || !isHebrew(name)) { showError('error-name', true); isValid = false; } else showError('error-name', false);
             if (!phone || !isValidPhone(phone)) { showError('error-phone', true); isValid = false; } else showError('error-phone', false);
             if (!city || !isHebrew(city)) { showError('error-city', true); isValid = false; } else showError('error-city', false);
 
             if (!isValid) return;
 
-            candidateDetails = { name, phone, city };
+            candidateDetails = { name, phone, city, branch }; // שמירת הסניף
             document.getElementById('registration-section').classList.add('hidden');
             document.getElementById('quiz-section').classList.remove('hidden');
 
@@ -341,31 +155,15 @@
             const textBox = document.getElementById('answer-box');
             const selectBox = document.getElementById('select-box');
 
-            textBox.value = '';
-            selectBox.innerHTML = '';
+            textBox.value = ''; selectBox.innerHTML = '';
 
             if (q.type === 'select') {
-                textBox.classList.add('hidden');
-                selectBox.classList.remove('hidden');
-                
-                const defaultOpt = document.createElement('option');
-                defaultOpt.text = "בחר תשובה...";
-                defaultOpt.value = "";
-                defaultOpt.disabled = true;
-                defaultOpt.selected = true;
-                selectBox.add(defaultOpt);
-
-                q.options.forEach(opt => {
-                    const el = document.createElement('option');
-                    el.text = opt;
-                    el.value = opt;
-                    selectBox.add(el);
-                });
+                textBox.classList.add('hidden'); selectBox.classList.remove('hidden');
+                const defaultOpt = document.createElement('option'); defaultOpt.text = "בחר תשובה..."; defaultOpt.value = ""; defaultOpt.disabled = true; defaultOpt.selected = true; selectBox.add(defaultOpt);
+                q.options.forEach(opt => { const el = document.createElement('option'); el.text = opt; el.value = opt; selectBox.add(el); });
                 selectBox.focus();
             } else {
-                selectBox.classList.add('hidden');
-                textBox.classList.remove('hidden');
-                textBox.focus();
+                selectBox.classList.add('hidden'); textBox.classList.remove('hidden'); textBox.focus();
             }
         }
 
@@ -382,38 +180,24 @@
             let answerValue = "";
 
             if (q.type === 'select') {
-                const selectBox = document.getElementById('select-box');
-                answerValue = selectBox.value;
-                if (answerValue === "") {
-                    selectBox.style.borderColor = "#e74c3c";
-                    return;
-                }
+                const selectBox = document.getElementById('select-box'); answerValue = selectBox.value;
+                if (answerValue === "") { selectBox.style.borderColor = "#e74c3c"; return; }
                 selectBox.style.borderColor = "#ddd";
             } else {
-                const textBox = document.getElementById('answer-box');
-                answerValue = textBox.value.trim();
-                if (answerValue === "") {
-                    textBox.style.borderColor = "#e74c3c";
-                    return;
-                }
+                const textBox = document.getElementById('answer-box'); answerValue = textBox.value.trim();
+                if (answerValue === "") { textBox.style.borderColor = "#e74c3c"; return; }
                 textBox.style.borderColor = "#ddd";
             }
 
             myAnswers.push({ questionId: q.id, answer: answerValue });
             currentQIndex++;
 
-            if (currentQIndex < questions.length) {
-                showCurrentQuestion();
-            } else {
-                document.getElementById('p-fill').style.width = '100%';
-                await sendResults();
-            }
+            if (currentQIndex < questions.length) { showCurrentQuestion(); } else { document.getElementById('p-fill').style.width = '100%'; await sendResults(); }
         }
 
         async function sendResults() {
             document.getElementById('quiz-section').classList.add('hidden');
             document.getElementById('finish-section').classList.remove('hidden');
-            
             document.querySelector('#finish-section h1').innerText = "שולח נתונים...";
             document.getElementById('summary-result').innerText = "אנא המתן...";
 
@@ -424,18 +208,10 @@
             });
 
             document.querySelector('#finish-section h1').innerText = "תודה רבה";
-            
-            // === כאן השינוי בטקסט הסיום ===
-            document.getElementById('summary-result').innerHTML = `
-                התשובות נקלטו בהצלחה.<br><br>
-                במידה ונראה התאמה לתפקיד,<br>
-                נחזור אליך בהקדם להמשך התהליך.
-            `;
+            document.getElementById('summary-result').innerHTML = `התשובות נקלטו בהצלחה.<br><br>במידה ונראה התאמה לתפקיד,<br>נחזור אליך בהקדם להמשך התהליך.`;
         }
         
-        document.getElementById("answer-box").addEventListener("keyup", function(event) {
-            if (event.key === "Enter") nextQuestion();
-        });
+        document.getElementById("answer-box").addEventListener("keyup", function(event) { if (event.key === "Enter") nextQuestion(); });
     </script>
 </body>
 </html>

@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
 
-// משתנה למודל הפעיל (ברירת מחדל, אבל יוחלף אוטומטית)
+// משתנה למודל הפעיל
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
 app.use(express.json());
@@ -35,46 +35,32 @@ const questions = [
     { id: 8, text: "לסיום: למה בחרת דווקא באדידס ולא בחנות אופנה רגילה?", type: "text" }
 ];
 
-// === הפונקציה החכמה לבחירת מודל (חזרה!) ===
 async function findWorkingModel() {
     console.log("🔍 סורק מודלים זמינים בחשבון Google AI...");
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
         
-        if (!response.ok) {
-            throw new Error(`שגיאה בגישה ל-API: ${response.status}`);
-        }
+        if (!response.ok) { throw new Error(`שגיאה בגישה ל-API: ${response.status}`); }
 
         const data = await response.json();
-        
         if (data.models) {
-            // מחפש מודל Gemini שתומך ביצירת תוכן
-            // אנחנו מעדיפים את 1.5-flash, אבל ניקח כל מה שיש
             const preferredModel = data.models.find(m => m.name.includes('gemini-1.5-flash'));
             const anyGemini = data.models.find(m => m.name.includes('gemini') && m.supportedGenerationMethods.includes('generateContent'));
-            
             const selected = preferredModel || anyGemini;
 
             if (selected) {
                 ACTIVE_MODEL = selected.name.replace("models/", "");
                 console.log(`✅ מודל נבחר והוגדר אוטומטית: ${ACTIVE_MODEL}`);
-            } else {
-                console.log("⚠️ לא נמצא מודל Gemini ברשימה, נשאר עם ברירת המחדל.");
             }
         }
-    } catch (error) {
-        console.error("❌ שגיאה בבדיקת המודלים:", error.message);
-    }
+    } catch (error) { console.error("❌ שגיאה בבדיקת המודלים:", error.message); }
 }
 
-// פונקציית ניקוי JSON
 function cleanJSON(text) {
     text = text.replace(/```json/g, "").replace(/```/g, "");
     const firstBrace = text.indexOf('{');
     const lastBrace = text.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1) {
-        return text.substring(firstBrace, lastBrace + 1);
-    }
+    if (firstBrace !== -1 && lastBrace !== -1) { return text.substring(firstBrace, lastBrace + 1); }
     return text;
 }
 
@@ -82,7 +68,8 @@ app.get('/api/get-questions', (req, res) => { res.json(questions); });
 
 app.post('/api/submit-interview', async (req, res) => {
     const { candidate, answers } = req.body;
-    console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name} (מודל: ${ACTIVE_MODEL})...`);
+    // כאן הוספנו את שם הסניף ללוג
+    console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name} (סניף: ${candidate.branch})...`);
 
     try {
         let answersText = "";
@@ -93,7 +80,6 @@ app.post('/api/submit-interview', async (req, res) => {
 
         const promptText = `
         You are a recruiting expert for Adidas. Analyze the interview below.
-        
         Candidate Name: ${candidate.name}
         Interview Data:
         ${answersText}
@@ -120,27 +106,18 @@ app.post('/api/submit-interview', async (req, res) => {
             body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
         });
 
-        // בדיקת שגיאות מה-API
-        if (!aiResponse.ok) {
-            const errorText = await aiResponse.text();
-            console.error("❌ GOOGLE API ERROR:", errorText);
-            throw new Error(`API Error: ${aiResponse.status}`);
-        }
+        if (!aiResponse.ok) { throw new Error(`API Error: ${aiResponse.status}`); }
 
         const aiData = await aiResponse.json();
         let aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-
-        console.log("🔍 Raw AI Response:", aiText);
-
         const cleanedText = cleanJSON(aiText);
+        
         let analysis = { score: 0, general: "שגיאה בפענוח", strengths: "-", weaknesses: "-", recommendation: "-" };
 
         try {
             analysis = JSON.parse(cleanedText);
             analysis.score = parseInt(analysis.score) || 0;
-        } catch (e) {
-            console.error("❌ JSON Parse Failed. Cleaned text was:", cleanedText);
-        }
+        } catch (e) { console.error("❌ JSON Parse Failed"); }
 
         console.log(`🤖 ציון סופי: ${analysis.score}`);
 
@@ -151,6 +128,7 @@ app.post('/api/submit-interview', async (req, res) => {
                 body: JSON.stringify({
                     name: candidate.name,
                     phone: candidate.phone,
+                    branch: candidate.branch, // <--- הוספנו את הסניף לשליחה
                     city: candidate.city,
                     score: analysis.score,
                     general: analysis.general,
@@ -170,9 +148,7 @@ app.post('/api/submit-interview', async (req, res) => {
     }
 });
 
-// הפעלת השרת + הרצת בדיקת המודלים
 app.listen(PORT, async () => {
     console.log(`Server is running on port ${PORT}`);
-    // קריאה לפונקציה החכמה שתמצא את המודל הנכון ותעדכן את המשתנה ACTIVE_MODEL
     await findWorkingModel();
 });
