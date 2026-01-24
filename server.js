@@ -12,8 +12,7 @@ const API_KEY = "AIzaSyCFtrENytySOKTydsAs4if4LYWeMy_i2N0";
 const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwstjjPaN7ExPbXW0do-b6rnvfq6emZVGhMpt5RhyXlWkM0u-ZR3xNpayjrkTC3yUaWFQ/exec";
 // ==========================================================
 
-// משתנה שיחזיק את המודל שעובד (ברירת מחדל לגיבוי)
-let ACTIVE_MODEL = "gemini-pro"; 
+let ACTIVE_MODEL = "gemini-pro"; // ברירת מחדל לגיבוי
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -21,7 +20,7 @@ app.use(express.static('public'));
 const questions = [
     { 
         id: 1, 
-        text: "העבודה באדידס דורשת עמידה ממושכת ומשמרות עד שעות הלילה המאוחרות (כולל סופ\"ש). האם יש לך מגבלה רפואית או אישית שמונעת ממך לעמוד בזה?", 
+        text: "העבודה באדידס דורשת עמידה ממושכת ומשמרות עד שעות הלילה המאוחרות. האם יש מניעה מבחינתך?", 
         type: "select",
         options: ["אין לי שום מגבלה - זמין/ה להכל", "יש לי מגבלה חלקית (יכול/ה לפרט בראיון)", "לא יכול/ה לעבוד בעמידה/לילות"]
     },
@@ -29,7 +28,8 @@ const questions = [
     { id: 3, text: "לקוח פונה אליך בטון כועס ולא מכבד ליד אנשים אחרים. מה התגובה הראשונה שלך?", type: "text" },
     { 
         id: 4, 
-        text: "שאלה של כנות: האם קרה לך בעבר שנאלצת לאחר למשמרת או לבטל ברגע האחרון?", 
+        // תיקון חשוב: מחקנו את "שאלה של כנות" - עכשיו זו שאלה רגילה שלא תפעיל חסימה
+        text: "האם קרה לך בעבר שנאלצת לאחר למשמרת או לבטל ברגע האחרון?", 
         type: "select",
         options: ["מעולם לא קרה לי (תמיד מגיע/ה בזמן)", "קרה לעיתים רחוקות מאוד בגלל חירום", "קורה לפעמים, זה אנושי"] 
     },
@@ -39,33 +39,25 @@ const questions = [
     { id: 8, text: "לסיום: למה בחרת דווקא באדידס ולא בחנות אופנה רגילה?", type: "text" }
 ];
 
-// === פונקציה חכמה למציאת מודל תקין ===
+// === פונקציה חכמה למציאת מודל תקין (מונעת שגיאות 404) ===
 async function findWorkingModel() {
-    console.log("🔍 בודק איזה מודלים זמינים בחשבון שלך...");
+    console.log("🔍 בודק איזה מודלים פתוחים בחשבון שלך...");
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
         const data = await response.json();
-        
         if (data.models) {
-            // מחפש מודל שמסוגל לייצר תוכן (generateContent)
-            // עדיפות למודלים חדשים, אבל לוקח כל מה שיש
+            // מחפש מודל מסוג Gemini שתומך ביצירת תוכן
             const availableModel = data.models.find(m => 
                 m.name.includes('gemini') && 
                 m.supportedGenerationMethods.includes('generateContent')
             );
-
             if (availableModel) {
-                // מנקה את התחילית "models/" אם קיימת
                 ACTIVE_MODEL = availableModel.name.replace("models/", "");
                 console.log(`✅ המודל שנבחר לשימוש: ${ACTIVE_MODEL}`);
-            } else {
-                console.error("⚠️ לא נמצא מודל Gemini ברשימה, משתמש בברירת מחדל (gemini-pro).");
             }
-        } else {
-            console.error("⚠️ לא התקבלה רשימת מודלים. משתמש בברירת מחדל.");
         }
-    } catch (error) {
-        console.error("❌ שגיאה בבדיקת המודלים (נשתמש בגיבוי):", error);
+    } catch (error) { 
+        console.error("Warning: Could not auto-detect model. Using default.", error); 
     }
 }
 
@@ -84,28 +76,35 @@ app.post('/api/submit-interview', async (req, res) => {
             answersText += `שאלה: ${qObj ? qObj.text : ''}\nתשובה: ${ans.answer}\n\n`;
         });
 
+        // הנחיה באנגלית - עובדת הרבה יותר טוב ומונעת בלבול של המודל
         const promptText = `
-        You are an expert recruitment manager for Adidas. Analyze the interview below.
+        You are an HR expert for Adidas. Analyze this interview data.
         
-        Candidate Name: ${candidate.name}
+        Candidate: ${candidate.name}
         Answers:
         ${answersText}
 
-        Instructions:
-        1. Analyze the candidate's fit for a retail sales position.
-        2. Identify strengths and weaknesses based on their answers.
-        3. Check reliability (Question 4).
-        
-        CRITICAL: Return the response ONLY as a raw JSON string (no markdown, no code blocks).
-        Keys: "score" (1-10), "general" (Hebrew summary), "strengths" (Hebrew list), "weaknesses" (Hebrew list), "recommendation" (Hebrew decision).
+        Task:
+        1. Evaluate fit for sales position.
+        2. Identify strengths and weaknesses.
+        3. Assess reliability based on attendance habits.
+
+        Output ONLY valid JSON string (no markdown, no code blocks):
+        {
+          "score": "1-10",
+          "general": "Summary in Hebrew",
+          "strengths": "List in Hebrew",
+          "weaknesses": "List in Hebrew",
+          "recommendation": "כן/לא/לשיקול דעת"
+        }
         `;
 
-        // שימוש במודל שנמצא אוטומטית
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: promptText }] }],
+                // הגדרות בטיחות שמונעות חסימות שווא
                 safetySettings: [
                     { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
                     { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -117,31 +116,28 @@ app.post('/api/submit-interview', async (req, res) => {
 
         const aiData = await response.json();
 
-        // בדיקה שהתקבלה תשובה
-        if (!aiData.candidates || !aiData.candidates[0]) {
-            console.error("❌ שגיאה: לא התקבלה תשובה מגוגל. פרטים:", JSON.stringify(aiData));
-            // נסיון חירום למודל הישן אם החדש נכשל
-            throw new Error("AI Response Empty");
+        // בדיקת תקינות התשובה
+        if (!aiData.candidates || !aiData.candidates[0] || !aiData.candidates[0].content) {
+            console.error("❌ שגיאה: ה-AI החזיר תשובה ריקה. פרטים:", JSON.stringify(aiData));
+            throw new Error("AI Blocked or Empty");
         }
 
         let aiText = aiData.candidates[0].content.parts[0].text;
         
-        // ניקוי JSON
+        // ניקוי סימנים מיותרים
         aiText = aiText.replace(/```json/g, "").replace(/```/g, "").trim();
-        console.log("📝 תוכן גולמי:", aiText);
+        console.log("📝 תשובת AI:", aiText);
 
         let analysis;
         try {
             analysis = JSON.parse(aiText);
         } catch (e) {
             console.error("Failed to parse JSON", e);
-            // יצירת אובייקט חירום אם הניתוח נכשל
             analysis = { score: "0", general: "תקלה בפענוח", strengths: "-", weaknesses: "-", recommendation: "-" };
         }
 
         console.log(`🤖 ציון סופי: ${analysis.score}`);
 
-        // שליחה לאקסל
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
             await fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
@@ -157,7 +153,7 @@ app.post('/api/submit-interview', async (req, res) => {
                     recommendation: analysis.recommendation
                 })
             });
-            console.log("✅ הנתונים נשמרו באקסל!");
+            console.log("✅ הנתונים נשמרו באקסל");
         }
 
         res.json({ message: "הראיון התקבל בהצלחה." });
@@ -165,7 +161,7 @@ app.post('/api/submit-interview', async (req, res) => {
     } catch (error) {
         console.error("System Error:", error);
         
-        // גיבוי: שליחה לאקסל גם במקרה של שגיאה
+        // גיבוי: שולח שגיאה לאקסל במקום לאבד את המידע
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
              fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
@@ -175,20 +171,19 @@ app.post('/api/submit-interview', async (req, res) => {
                     phone: candidate.phone,
                     city: candidate.city,
                     score: "ERROR",
-                    general: "שגיאה טכנית בניתוח",
+                    general: "תקלה טכנית בניתוח",
                     strengths: "-",
                     weaknesses: "-",
                     recommendation: "-"
                 })
             }).catch(e => console.error("Sheet Error:", e));
         }
-        
         res.json({ message: "הריאיון נקלט." });
     }
 });
 
-// הפעלת השרת + חיפוש המודל
+// הפעלת השרת + זיהוי מודל
 app.listen(PORT, async () => {
     console.log(`Server is running on port ${PORT}`);
-    await findWorkingModel(); // קריטי: מוצא את המודל הנכון לפני שהכל מתחיל
+    await findWorkingModel(); // קריטי לזיהוי המודל הנכון
 });
