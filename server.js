@@ -5,9 +5,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ==========================================================
-// 🔴 חובה: הדבק כאן את המפתח החדש שלך בתוך המרכאות
-const API_KEY = "AIzaSyAMxGeSPFpgvnGS-7IBOCJcLX1GDdGRcJY"; 
+// הדבק כאן את המפתח החדש שלך
+const API_KEY = "AIzaSyAMxGeSPFpgvnGS-7IBOCJcLX1GDdGRcJY";
 // ==========================================================
+
+// משתנה שיחזיק את שם המודל שעובד
+let ACTIVE_MODEL = "gemini-1.5-flash"; // ברירת מחדל
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -24,14 +27,44 @@ const questions = [
     { id: 9, text: "מהי הזמינות שלך למשמרות? (כמה משמרות בשבוע, בקרים/ערבים)", type: "text" }
 ];
 
+// === פונקציה חכמה למציאת מודל תקין ===
+async function findWorkingModel() {
+    console.log("🔍 מחפש מודל זמין בחשבון הגוגל שלך...");
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+        const data = await response.json();
+        
+        if (data.models) {
+            // מחפש מודל שמסוגל לייצר תוכן (generateContent)
+            const availableModel = data.models.find(m => 
+                m.name.includes('gemini') && 
+                m.supportedGenerationMethods.includes('generateContent')
+            );
+
+            if (availableModel) {
+                // גוגל מחזיר את השם עם התחילית "models/", אנחנו צריכים רק את השם עצמו לפעמים
+                // אבל בבקשות Fetch רגילות משתמשים בשם המלא
+                ACTIVE_MODEL = availableModel.name.replace("models/", "");
+                console.log(`✅ מודל נבחר והוגדר: ${ACTIVE_MODEL}`);
+            } else {
+                console.error("⚠️ לא נמצא מודל Gemini ברשימה, משתמש בברירת מחדל.");
+            }
+        } else {
+            console.error("⚠️ לא התקבלה רשימת מודלים (אולי המפתח שגוי?)");
+            console.log(JSON.stringify(data, null, 2));
+        }
+    } catch (error) {
+        console.error("❌ שגיאה בבדיקת המודלים:", error);
+    }
+}
+
 app.get('/api/get-questions', (req, res) => {
     res.json(questions);
 });
 
 app.post('/api/submit-interview', async (req, res) => {
     const { candidate, answers } = req.body;
-    
-    console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name}...`);
+    console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name} עם המודל: ${ACTIVE_MODEL}...`);
 
     try {
         let answersText = "";
@@ -56,16 +89,12 @@ app.post('/api/submit-interview', async (req, res) => {
         5. **המלצה**: לזמן לראיון? (כן/לא).
         `;
 
-        // === התיקון כאן: שימוש ב-gemini-pro וגרסה v1beta (הכי נפוץ) ===
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`, {
+        // שימוש במודל שנמצא אוטומטית
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${API_KEY}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: promptText }]
-                }]
+                contents: [{ parts: [{ text: promptText }] }]
             })
         });
 
@@ -76,16 +105,10 @@ app.post('/api/submit-interview', async (req, res) => {
             throw new Error(data.error.message);
         }
 
-        // בדיקה נוספת שהתשובה הגיעה בפורמט הנכון
-        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-            console.error("Unexpected response structure:", JSON.stringify(data, null, 2));
-            throw new Error("התקבלה תשובה ריקה מגוגל");
-        }
-
-        const analysis = data.candidates[0].content.parts[0].text;
+        const analysis = data.candidates?.[0]?.content?.parts?.[0]?.text || "לא התקבל ניתוח";
 
         console.log("========================================");
-        console.log(`🤖 דוח בינה מלאכותית: ${candidate.name}`);
+        console.log(`🤖 דוח בינה מלאכותית (${ACTIVE_MODEL}): ${candidate.name}`);
         console.log(analysis);
         console.log("========================================");
 
@@ -101,6 +124,8 @@ app.post('/api/submit-interview', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+// הפעלת השרת וחיפוש מודל
+app.listen(PORT, async () => {
     console.log(`Server is running on port ${PORT}`);
+    await findWorkingModel(); // הרצה של בדיקת המודלים בעלייה
 });
