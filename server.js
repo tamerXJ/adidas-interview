@@ -11,7 +11,7 @@ const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
 // משתנה למודל הפעיל
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
 const questions = [

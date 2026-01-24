@@ -38,6 +38,15 @@
         .progress-fill { height: 100%; background-color: #000; width: 0%; transition: width 0.4s ease; }
         #question-title { font-size: 19px; line-height: 1.5; font-weight: 600; color: #222; min-height: 60px; }
         .q-tag { font-size: 11px; font-weight: 800; color: #aaa; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; }
+
+        /* סגנון לכפתור העלאת קובץ */
+        .file-upload-container {
+            border: 2px dashed #ccc; padding: 20px; margin-bottom: 15px; border-radius: 8px; background: #fafafa; cursor: pointer; transition: 0.3s;
+        }
+        .file-upload-container:hover { border-color: #000; }
+        input[type="file"] { display: none; }
+        .file-status { font-size: 13px; font-weight: bold; color: #000; margin-top: 5px; }
+        
         @media only screen and (max-width: 600px) { .container { width: 92%; padding: 30px 20px; margin-top: 50px; } }
     </style>
 </head>
@@ -73,6 +82,13 @@
             <input type="text" id="city">
             <div id="error-city" class="error-msg">נא לכתוב בעברית בלבד</div>
 
+            <label>קורות חיים (אופציונלי)</label>
+            <div class="file-upload-container" onclick="document.getElementById('cv-file').click()">
+                <div>📎 לחץ לצירוף קובץ (PDF/Word)</div>
+                <div id="file-name" class="file-status"></div>
+            </div>
+            <input type="file" id="cv-file" accept=".pdf,.doc,.docx,.jpg,.png" onchange="handleFileSelect(event)">
+
             <button id="btn-start" onclick="startInterview()" style="width:100%; margin-top:10px;">התחל ריאיון</button>
         </div>
 
@@ -107,14 +123,40 @@
         let questions = [];
         let currentQIndex = 0;
         let myAnswers = [];
-        let candidateDetails = {}; 
+        let candidateDetails = {};
+        
+        // משתנים לשמירת הקובץ
+        let cvFileData = null;
+        let cvFileName = null;
+        let cvFileMime = null;
 
         function isHebrew(text) { return /^[\u0590-\u05FF\s0-9.,?!"'-]+$/.test(text); }
         function isValidPhone(phone) { return /^\d{10,}$/.test(phone); }
         function showError(id, show) { document.getElementById(id).style.visibility = show ? 'visible' : 'hidden'; }
 
+        // פונקציה לטיפול בקובץ
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) { // מגבלת 5MB
+                    alert("הקובץ גדול מדי (עד 5MB)");
+                    return;
+                }
+                document.getElementById('file-name').innerText = "נבחר: " + file.name;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // שמירת הנתונים להמשך
+                    const base64String = e.target.result.split(',')[1]; // לוקחים רק את התוכן נטו
+                    cvFileData = base64String;
+                    cvFileName = file.name;
+                    cvFileMime = file.type;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
         async function startInterview() {
-            // הוספת לוגיקת בחירת סניף
             const branch = document.getElementById('branch-select').value;
             const name = document.getElementById('full-name').value.trim();
             const phone = document.getElementById('phone').value.trim();
@@ -128,7 +170,14 @@
 
             if (!isValid) return;
 
-            candidateDetails = { name, phone, city, branch }; // שמירת הסניף
+            // שמירת כל הפרטים כולל הקובץ
+            candidateDetails = { 
+                name, phone, city, branch,
+                cvData: cvFileData,
+                cvName: cvFileName,
+                cvMime: cvFileMime
+            };
+
             document.getElementById('registration-section').classList.add('hidden');
             document.getElementById('quiz-section').classList.remove('hidden');
 
@@ -208,7 +257,7 @@
             });
 
             document.querySelector('#finish-section h1').innerText = "תודה רבה";
-            document.getElementById('summary-result').innerHTML = `התשובות נקלטו בהצלחה.<br><br>במידה ונראה התאמה לתפקיד,<br>נחזור אליך בהקדם להמשך התהליך.`;
+            document.getElementById('summary-result').innerHTML = `התשובות וקורות החיים נקלטו בהצלחה.<br><br>במידה ונראה התאמה לתפקיד,<br>נחזור אליך בהקדם להמשך התהליך.`;
         }
         
         document.getElementById("answer-box").addEventListener("keyup", function(event) { if (event.key === "Enter") nextQuestion(); });
