@@ -12,16 +12,45 @@ let ACTIVE_MODEL = "gemini-1.5-flash";
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.static('public'));
 
-const questions = [
-    { id: 1, text: "העבודה באדידס דורשת עמידה ממושכת ומשמרות עד שעות הלילה המאוחרות (כולל סופ\"ש). האם יש לך מגבלה רפואית או אישית שמונעת ממך לעמוד בזה?", type: "select", options: ["אין לי שום מגבלה - זמין/ה להכל", "יש לי מגבלה חלקית (יכול/ה לפרט בראיון)", "לא יכול/ה לעבוד בעמידה/לילות"] },
-    { id: 2, text: "האם יש לך רכב צמוד או דרך הגעה עצמאית למשמרות (כולל בסופי שבוע וחגים כשאין תחב\"צ)?", type: "select", options: ["כן, יש לי רכב/ניידות מלאה", "תחבורה ציבורית (מוגבל בסופ\"ש)", "אין לי דרך הגעה מסודרת"] },
-    { id: 3, text: "תאר/י סיטואציה מהעבר שבה עבדת תחת לחץ זמן גדול או תור של לקוחות. איך הגבת ומה עשית כדי להשתלט על המצב?", type: "text" },
-    { id: 4, text: "לקוח פונה אליך בטון כועס ולא מכבד ליד אנשים אחרים. מה התגובה הראשונה שלך?", type: "text" },
-    { id: 5, text: "כמה קל לך ללמוד מפרטים טכניים על מוצרים (כמו טכנולוגיית סוליות או סוגי בדים)?", type: "text" },
-    { id: 6, text: "אחראי המשמרת ביקש ממך לבצע משימה (כמו ניקיון מחסן) בזמן שאתה באמצע מכירה ללקוח. איך תפעל?", type: "text" },
-    { id: 7, text: "סימולציה: אני לקוח שנכנס לחנות ומחפש נעל ריצה, אבל אני לא מבין בזה כלום. אילו 2-3 שאלות תשאל אותי כדי למצוא לי את הנעל המושלמת?", type: "text" },
-    { id: 8, text: "לסיום: למה בחרת דווקא באדידס ולא בחנות אופנה רגילה?", type: "text" }
-];
+// === מאגר השאלות המפוצל ל-3 רמות ===
+const ROLES_QUESTIONS = {
+    // רמה 1: מוכרן / איש צוות
+    "sales": [
+        { id: 1, text: "העבודה באדידס דורשת עמידה ממושכת ומשמרות לילה/סופ\"ש. האם יש מגבלה?", type: "select", options: ["זמין להכל", "מגבלה חלקית", "לא יכול"] },
+        { id: 2, text: "האם יש לך דרך הגעה עצמאית למשמרות (גם בסופ\"ש)?", type: "select", options: ["כן, יש לי רכב צמוד", "תחב\"צ (מוגבל)", "אין דרך הגעה"] },
+        { id: 3, text: "תאר/י סיטואציה שבה נתת שירות מעל ומעבר ללקוח.", type: "text" },
+        { id: 4, text: "לקוח כועס צועק עליך ליד אנשים אחרים. מה התגובה הראשונה שלך?", type: "text" },
+        { id: 5, text: "איך תשכנע לקוח שמתלבט לקנות נעל יקרה כי \"זה יקר לו\"?", type: "text" },
+        { id: 6, text: "המנהל ביקש ממך לסדר מחסן באמצע מכירה טובה. מה תעשה?", type: "text" },
+        { id: 7, text: "למה דווקא אדידס ולא רשת אחרת?", type: "text" }
+    ],
+
+    // רמה 2: אחמ"ש (Shift Manager) - דגש על תפעול וניהול רצפה
+    "shift_manager": [
+        { id: 1, text: "כמה ניסיון יש לך בניהול משמרת או צוות עובדים?", type: "select", options: ["אין ניסיון", "עד שנה", "מעל שנה"] },
+        { id: 2, text: "שני עובדים רבים באמצע המשמרת מול לקוחות. איך אתה פועל באותו רגע?", type: "text" },
+        { id: 3, text: "יש עומס מטורף בחנות ואתה רואה שעובד אחד מדבר בטלפון בצד. איך תגיב?", type: "text" },
+        { id: 4, text: "לקוח דורש \"מנהל\" וצועק על עובד שלך. איך אתה ניגש לסיטואציה?", type: "text" },
+        { id: 5, text: "חסר לך עובד למשמרת סופ\"ש ואף אחד לא רוצה לבוא. איך תפתור את זה?", type: "text" },
+        { id: 6, text: "מה ההבדל בעיניך בין \"בוס\" לבין \"מנהל\"?", type: "text" },
+        { id: 7, text: "איך תדאג שהחנות תישאר מסודרת גם בשיא הלחץ?", type: "text" },
+        // שאלה חדשה על KPI לאחמ"ש:
+        { id: 8, text: "במהלך המשמרת אתה מזהה שממוצע הפריטים לעסקה (UPT) נמוך מהיעד. אילו פעולות מיידיות תעשה ברצפה כדי לשפר את זה?", type: "text" }
+    ],
+
+    // רמה 3: מנהל / סגן (Store Manager) - דגש על אסטרטגיה, יעדים ו-HR
+    "store_manager": [
+        { id: 1, text: "כמה שנים ניהלת חנות או יחידת רווח והפסד (P&L)?", type: "select", options: ["אין ניסיון ניהולי", "1-2 שנים", "3 שנים ומעלה"] },
+        { id: 2, text: "החנות לא עומדת ביעד המרה (Conversion) כבר חודש. מה תוכנית הפעולה שלך?", type: "text" },
+        { id: 3, text: "עובד ותיק ומוערך נשחק, מאחר למשמרות ומוכר פחות. איך תבצע שיחת משוב?", type: "text" },
+        { id: 4, text: "איך אתה מגייס עובדים איכותיים? מה הדבר הכי חשוב שאתה מחפש במועמד?", type: "text" },
+        { id: 5, text: "תאר החלטה ניהולית קשה שנאלצת לקבל בעבר. האם היית משנה אותה היום?", type: "text" },
+        { id: 6, text: "איך תרתום את הצוות ליעדים אגרסיביים בתקופת מבצעים לחוצה?", type: "text" },
+        { id: 7, text: "מה הערך המוסף שתביא כמנהל לרשת אדידס?", type: "text" },
+        // שאלה חדשה על KPI למנהל:
+        { id: 8, text: "מעבר ליעד היומי, איך אתה מנתח דוח KPI שבועי? תן דוגמה לנתון (כמו ATV או UPT) שזיהית בו חולשה ואיך בניית תוכנית לשיפורו.", type: "text" }
+    ]
+};
 
 async function findWorkingModel() {
     console.log("🔍 סורק מודלים זמינים בחשבון Google AI...");
@@ -48,40 +77,57 @@ function cleanJSON(text) {
     return text;
 }
 
-app.get('/api/get-questions', (req, res) => { res.json(questions); });
+// קבלת השאלות לפי התפקיד הספציפי
+app.get('/api/get-questions', (req, res) => { 
+    const role = req.query.role || "sales";
+    const questionSet = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
+    res.json(questionSet); 
+});
 
 app.post('/api/submit-interview', async (req, res) => {
     const { candidate, answers } = req.body;
-    console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name}...`);
+    const role = candidate.role || "sales";
+    
+    console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name} (${role})...`);
+
+    const currentQuestions = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
 
     try {
         let answersText = "";
         answers.forEach((ans) => {
-            const qObj = questions.find(q => q.id === ans.questionId);
-            // === הוספנו כאן את נתוני ה"רמאות" כדי שה-AI יראה אותם ===
+            const qObj = currentQuestions.find(q => q.id === ans.questionId);
             answersText += `Question: ${qObj ? qObj.text : ''}\nAnswer: ${ans.answer}\n[METADATA: Time Taken=${ans.timeSeconds}s, Tab Switches=${ans.switchedTabs}]\n\n`;
         });
+
+        // === הנחיות AI ספציפיות לכל תפקיד ===
+        let roleInstruction = "";
+        
+        if (role === "store_manager") {
+            roleInstruction = "CRITICAL: Evaluate for a SENIOR STORE MANAGER position. Look for: Strategic thinking, P&L awareness, KPI Analysis (ATV/UPT), HR/Recruiting skills, Leadership maturity. Be strict.";
+        } else if (role === "shift_manager") {
+            roleInstruction = "Evaluate for a SHIFT MANAGER (Team Leader) position. Look for: Operational control, KPI driving on floor, Ability to motivate staff, Responsibility, Problem solving under pressure.";
+        } else {
+            roleInstruction = "Evaluate for a SALES ASSOCIATE position. Look for: Service orientation, Sales drive, Availability, Teamwork, Passion for the brand.";
+        }
 
         const promptText = `
         You are a recruiting expert for Adidas. Analyze the interview below.
         
         Candidate Name: ${candidate.name}
-        Interview Data (includes metadata about time and tab switching):
+        Role Applied For: ${role}
+        Interview Data:
         ${answersText}
 
         INSTRUCTIONS:
-        1. Analyze availability and service skills.
-        2. **INTEGRITY CHECK:** Look at the [METADATA]. 
-           - If "Tab Switches" is > 2 for a single question, it indicates the user left the screen (possibly to use ChatGPT).
-           - If "Time Taken" is very short (< 5s) for a complex question, it indicates copy-paste.
-           - If suspicious behavior is found, MENTION IT in the "general" summary and LOWER the score significantly.
+        1. ${roleInstruction}
+        2. **INTEGRITY CHECK:** Look at the [METADATA]. If "Tab Switches" > 2 or "Time Taken" is suspicious, lower the score.
         3. Output MUST be a valid JSON object.
         4. Keys MUST be in English. Values MUST be in Hebrew.
 
         JSON Structure:
         {
           "score": 5, 
-          "general": "Summary in Hebrew (Include cheat warnings if any)",
+          "general": "Summary in Hebrew",
           "strengths": "Strengths in Hebrew",
           "weaknesses": "Weaknesses in Hebrew",
           "recommendation": "Yes/No (in Hebrew)"
