@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Career Portal - הגשת מועמדות</title>
     <style>
-        /* === 🎨 אזור המיתוג === */
         :root { --brand-color: #000000; --brand-bg: #ffffff; --font-main: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
         * { box-sizing: border-box; -webkit-user-select: none; user-select: none; cursor: default; }
         input, select, textarea { -webkit-user-select: text !important; user-select: text !important; cursor: text !important; }
         
@@ -40,73 +38,35 @@
         }
         
         textarea { resize: none; min-height: 120px; line-height: 1.5; padding-left: 10px; }
-
         textarea::-webkit-scrollbar { width: 8px; }
         textarea::-webkit-scrollbar-track { background: transparent; margin-block: 4px; }
         textarea::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; border: 2px solid #fafafa; }
         textarea::-webkit-scrollbar-thumb:hover { background: var(--brand-color); }
 
         input:focus, select:focus, textarea:focus { outline: none; border-color: var(--brand-color); background-color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        
         .error-msg { color: #e74c3c; font-size: 12px; font-weight: 500; text-align: right; height: 18px; margin-bottom: 5px; visibility: hidden; }
         
-        /* === 💡 עיצוב המאמן האישי (נקי) === */
-        #coach-tip {
-            height: 30px; margin-top: 5px; display: flex; align-items: center; gap: 8px; 
-            font-size: 13px; color: #666; font-weight: 500;
-            opacity: 0; transition: opacity 0.4s ease; pointer-events: none;
-        }
+        #coach-tip { height: 30px; margin-top: 5px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: #666; font-weight: 500; opacity: 0; transition: opacity 0.4s ease; pointer-events: none; }
         #coach-tip.visible { opacity: 1; pointer-events: auto; }
         .tip-icon { font-size: 16px; }
 
-        /* === ♻️ עיצוב הודעת שחזור (נקי) === */
-        #recovery-msg {
-            display: none; font-size: 13px; color: #666; text-align: center; margin-bottom: 20px; font-weight: 600;
-            animation: fadeInUp 0.8s ease-out;
-        }
+        #recovery-msg { display: none; font-size: 13px; color: #666; text-align: center; margin-bottom: 20px; font-weight: 600; animation: fadeInUp 0.8s ease-out; }
 
-        /* === 👔 כרטיסי בחירת תפקיד === */
-        .role-card {
-            background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 20px; margin-bottom: 12px;
-            display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02); text-align: right;
-        }
-        .role-card:hover {
-            border-color: var(--brand-color); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-        }
+        .role-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 20px; margin-bottom: 12px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.02); text-align: right; }
+        .role-card:hover { border-color: var(--brand-color); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
         .role-icon { font-size: 24px; background: #f4f4f4; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
         .role-info h3 { margin: 0 0 4px 0; font-size: 16px; color: #000; }
         .role-info p { margin: 0; font-size: 12px; color: #777; }
+        .change-role-btn { font-size: 13px; color: var(--brand-color); text-decoration: underline; cursor: pointer; margin-right: 10px; font-weight: normal; }
 
-        /* כפתור חזרה קטן (לינק) */
-        .change-role-btn {
-            font-size: 13px; color: var(--brand-color); text-decoration: underline; cursor: pointer; margin-right: 10px; font-weight: normal;
-        }
-
-        /* === 🎚️ עיצוב הסליידרים === */
         .slider-wrapper { text-align: right; margin-bottom: 25px; }
         .slider-label { font-weight: 600; font-size: 14px; margin-bottom: 8px; display: flex; justify-content: space-between; }
         .slider-value { color: var(--brand-color); font-weight: 800; }
-        input[type="range"] {
-            -webkit-appearance: none; width: 100%; height: 6px; background: #ddd; border-radius: 5px; outline: none; padding: 0; margin: 0; border: none; cursor: pointer;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--brand-color); cursor: pointer; transition: transform 0.1s;
-        }
+        input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; background: #ddd; border-radius: 5px; outline: none; padding: 0; margin: 0; border: none; cursor: pointer; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--brand-color); cursor: pointer; transition: transform 0.1s; }
         input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); }
 
-        /* === ✅ עיצוב חדש להודעת סיום === */
-        #summary-result {
-            font-size: 19px; 
-            color: #000; 
-            font-weight: 600; 
-            line-height: 1.6; 
-            margin-top: 20px; 
-            background: #f8f8f8; 
-            padding: 25px 20px; 
-            border-radius: 12px; 
-            border: 1px solid #eee;
-        }
+        #summary-result { font-size: 19px; color: #000; font-weight: 600; line-height: 1.6; margin-top: 20px; background: #f8f8f8; padding: 25px 20px; border-radius: 12px; border: 1px solid #eee; }
 
         button { padding: 14px 20px; border: none; cursor: pointer; font-size: 16px; font-weight: 600; border-radius: 10px; transition: all 0.2s ease; }
         #btn-next, #btn-start { background-color: var(--brand-color); color: #fff; flex: 2; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
@@ -115,17 +75,11 @@
         .hidden { display: none; }
         .progress-bar { height: 4px; background-color: #eee; margin-bottom: 30px; width: 100%; border-radius: 2px; overflow: hidden; }
         .progress-fill { height: 100%; background-color: var(--brand-color); width: 0%; transition: width 0.4s ease; }
-        
-        /* === ✨ אנימציית הופעה רכה === */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         #question-title { font-size: 19px; line-height: 1.5; font-weight: 600; color: #222; min-height: 60px; }
         .fade-in-text { animation: fadeInUp 0.6s ease-out forwards; }
         .q-tag { font-size: 11px; font-weight: 800; color: #aaa; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; }
-
+        
         .file-upload-container { border: 2px dashed #ccc; padding: 20px; margin-bottom: 15px; border-radius: 8px; background: #fafafa; cursor: pointer; transition: 0.3s; }
         .file-upload-container:hover { border-color: var(--brand-color); }
         input[type="file"] { display: none; }
@@ -137,7 +91,6 @@
         .legal-link { color: var(--brand-color); text-decoration: underline; font-weight: bold; cursor: pointer; }
         .nav-buttons { display: flex; gap: 12px; margin-top: 25px; }
         
-        /* === 🧠 עיצוב מסך הטעינה החכם === */
         .ai-loader-container { text-align: right; width: 100%; max-width: 320px; margin: 0 auto; margin-top: 20px; }
         .ai-step { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; opacity: 0.4; transition: all 0.5s ease; font-size: 15px; font-weight: 500; color: #555; }
         .ai-step.active { opacity: 1; color: #000; font-weight: 700; transform: translateX(-5px); }
@@ -161,35 +114,21 @@
             
             <div class="role-card" onclick="selectRole('sales')">
                 <div class="role-icon">👟</div>
-                <div class="role-info">
-                    <h3>מוכרן / איש צוות</h3>
-                    <p>מכירות פרונטליות, סידור סחורה ושירות לקוחות.</p>
-                </div>
+                <div class="role-info"><h3>מוכרן / איש צוות</h3><p>מכירות פרונטליות, סידור סחורה ושירות.</p></div>
             </div>
-
             <div class="role-card" onclick="selectRole('shift_manager')">
                 <div class="role-icon">👔</div>
-                <div class="role-info">
-                    <h3>אחמ"ש (Shift Manager)</h3>
-                    <p>ניהול משמרת, הנעת צוות ועמידה ביעדים.</p>
-                </div>
+                <div class="role-info"><h3>אחמ"ש (Shift Manager)</h3><p>ניהול משמרת, הנעת צוות ויעדים.</p></div>
             </div>
-
             <div class="role-card" onclick="selectRole('store_manager')">
                 <div class="role-icon">⭐</div>
-                <div class="role-info">
-                    <h3>סגן / מנהל חנות</h3>
-                    <p>ניהול כולל, גיוס עובדים וניהול מלאי.</p>
-                </div>
+                <div class="role-info"><h3>סגן / מנהל חנות</h3><p>ניהול כולל, גיוס ומלאי.</p></div>
             </div>
         </div>
 
         <div id="registration-section" class="hidden">
             <h1 id="form-title" style="font-size: 24px;">פרטים אישיים</h1>
-            <h2 id="selected-role-display" style="font-size: 16px; margin-bottom: 25px;">
-                מועמדות לתפקיד: ... 
-                <span class="change-role-btn" onclick="resetRole()">↻ שינוי תפקיד</span>
-            </h2>
+            <h2 id="selected-role-display" style="font-size: 16px; margin-bottom: 25px;">... <span class="change-role-btn" onclick="resetRole()">↻ שינוי תפקיד</span></h2>
             
             <label>לאיזה סניף תרצה/י להגיש?</label>
             <select id="branch-select" onchange="saveProgress()">
@@ -234,9 +173,7 @@
 
             <div class="legal-box">
                 <input type="checkbox" id="legal-checkbox" onchange="toggleStartButton()">
-                <div>
-                    אני מאשר/ת את שמירת הפרטים, ומסכים/ה ל<span class="legal-link" onclick="alert('תנאי השימוש: המערכת מנטרת יציאה מהחלון ומודדת זמני מענה לצורך אמינות.')">תנאי השימוש ומדיניות הפרטיות</span>.
-                </div>
+                <div>אני מאשר/ת את שמירת הפרטים, ומסכים/ה ל<span class="legal-link" onclick="alert('תנאי השימוש...')">תנאי השימוש ומדיניות הפרטיות</span>.</div>
             </div>
 
             <button id="btn-start" onclick="startInterview()" style="width:100%; margin-top:10px;" disabled>התחל ריאיון</button>
@@ -246,18 +183,16 @@
             <div class="progress-bar"><div id="p-fill" class="progress-fill"></div></div>
             <div class="q-tag">Question <span id="q-number">01</span></div>
             <div id="question-title" class="fade-in-text">...</div>
+            
             <div id="input-container" style="margin-top: 20px;">
                 <textarea id="answer-box" class="hidden" placeholder="כתוב את התשובה שלך כאן... (לחץ Enter לירידת שורה)" onpaste="return false;" ondrop="return false;" oninput="checkInputLength()"></textarea>
                 <select id="select-box" class="hidden"></select>
                 <div id="sliders-container" class="hidden"></div>
             </div>
             
-            <div id="coach-tip">
-                <span class="tip-icon">💡</span>
-                <span>טיפ: תשובות מפורטות מגדילות את הסיכוי להתקבל. נסה להרחיב!</span>
-            </div>
-
+            <div id="coach-tip"><span class="tip-icon">💡</span><span>טיפ: תשובות מפורטות מגדילות את הסיכוי להתקבל. נסה להרחיב!</span></div>
             <div id="error-answer" class="error-msg">נא למלא תשובה</div>
+            
             <div class="nav-buttons">
                 <button id="btn-next" onclick="nextQuestion()">הבא</button>
                 <button id="btn-prev" class="btn-back hidden hidden" onclick="prevQuestion()" style="background:transparent; color:#888; border:1px solid #ddd; flex:1;">חזרה</button>
@@ -286,20 +221,12 @@
 
     <script>
         const STORAGE_KEY = 'adidas_interview_state';
-        let questions = [];
-        let currentQIndex = 0;
-        let myAnswers = [];
-        let candidateDetails = {};
+        let questions = []; let currentQIndex = 0; let myAnswers = []; let candidateDetails = {};
         let cvFileData = null; let cvFileName = null; let cvFileMime = null;
-        let questionStartTime = 0;
-        let tabSwitchCount = 0;
+        let questionStartTime = 0; let tabSwitchCount = 0;
 
         window.addEventListener('load', loadProgress);
-        window.addEventListener('blur', function() {
-            if (!document.getElementById('quiz-section').classList.contains('hidden')) {
-                tabSwitchCount++;
-            }
-        });
+        window.addEventListener('blur', function() { if (!document.getElementById('quiz-section').classList.contains('hidden')) { tabSwitchCount++; } });
 
         const answerBox = document.getElementById('answer-box');
         answerBox.addEventListener('paste', e => { e.preventDefault(); alert("הדבקת טקסט חסומה בראיון זה."); });
@@ -308,23 +235,15 @@
         function selectRole(role) {
             candidateDetails.role = role;
             saveProgress();
-            
-            const roleNames = {
-                'sales': 'מוכרן / איש צוות',
-                'shift_manager': 'אחמ"ש (Shift Manager)',
-                'store_manager': 'סגן / מנהל חנות'
-            };
-            
+            const roleNames = { 'sales': 'מוכרן / איש צוות', 'shift_manager': 'אחמ"ש (Shift Manager)', 'store_manager': 'סגן / מנהל חנות' };
             const displayHTML = `מועמדות לתפקיד: ${roleNames[role]} <span class="change-role-btn" onclick="resetRole()">↻ שינוי תפקיד</span>`;
             document.getElementById('selected-role-display').innerHTML = displayHTML;
-
             document.getElementById('role-selection-section').classList.add('hidden');
             document.getElementById('registration-section').classList.remove('hidden');
         }
 
         function resetRole() {
-            delete candidateDetails.role;
-            saveProgress();
+            delete candidateDetails.role; saveProgress();
             document.getElementById('registration-section').classList.add('hidden');
             document.getElementById('role-selection-section').classList.remove('hidden');
         }
@@ -334,8 +253,7 @@
             const text = answerBox.value.trim();
             const wordCount = text.length > 0 ? text.split(/\s+/).length : 0;
             const tipBox = document.getElementById('coach-tip');
-            if (wordCount > 1 && wordCount < 10) { tipBox.classList.add('visible'); } 
-            else { tipBox.classList.remove('visible'); }
+            if (wordCount > 1 && wordCount < 10) { tipBox.classList.add('visible'); } else { tipBox.classList.remove('visible'); }
         }
 
         function isHebrew(text) { return /^[\u0590-\u05FF\s0-9.,?!"'-]+$/.test(text); }
@@ -349,7 +267,7 @@
         }
 
         function saveProgress() {
-            if (document.getElementById('registration-section').classList.contains('hidden') === false) {
+            if (!document.getElementById('registration-section').classList.contains('hidden')) {
                 candidateDetails.name = document.getElementById('full-name').value;
                 candidateDetails.phone = document.getElementById('phone').value;
                 candidateDetails.city = document.getElementById('city').value;
@@ -369,9 +287,7 @@
                 currentQIndex = state.currentQIndex || 0;
                 
                 if (state.cvFileData) {
-                    cvFileData = state.cvFileData;
-                    cvFileName = state.cvFileName;
-                    cvFileMime = state.cvFileMime;
+                    cvFileData = state.cvFileData; cvFileName = state.cvFileName; cvFileMime = state.cvFileMime;
                     document.getElementById('file-name').innerText = "קובץ משוחזר: " + cvFileName;
                 }
 
@@ -379,10 +295,9 @@
                 document.getElementById('phone').value = candidateDetails.phone || '';
                 document.getElementById('city').value = candidateDetails.city || '';
                 document.getElementById('branch-select').value = candidateDetails.branch || '';
-
                 document.getElementById('recovery-msg').style.display = 'block';
 
-                if (currentQIndex > 0 || (myAnswers.length > 0)) {
+                if (currentQIndex > 0 || myAnswers.length > 0) {
                     const role = candidateDetails.role || 'sales';
                     const response = await fetch(`/api/get-questions?role=${role}`);
                     questions = await response.json();
@@ -390,12 +305,10 @@
                     document.getElementById('registration-section').classList.add('hidden');
                     document.getElementById('quiz-section').classList.remove('hidden');
                     showCurrentQuestion();
-                } 
-                else if (candidateDetails.role) {
+                } else if (candidateDetails.role) {
                     const roleNames = { 'sales': 'מוכרן / איש צוות', 'shift_manager': 'אחמ"ש (Shift Manager)', 'store_manager': 'סגן / מנהל חנות' };
                     if (roleNames[candidateDetails.role]) {
-                         const displayHTML = `מועמדות לתפקיד: ${roleNames[candidateDetails.role]} <span class="change-role-btn" onclick="resetRole()">↻ שינוי תפקיד</span>`;
-                         document.getElementById('selected-role-display').innerHTML = displayHTML;
+                         document.getElementById('selected-role-display').innerHTML = `מועמדות לתפקיד: ${roleNames[candidateDetails.role]} <span class="change-role-btn" onclick="resetRole()">↻ שינוי תפקיד</span>`;
                     }
                     document.getElementById('role-selection-section').classList.add('hidden');
                     document.getElementById('registration-section').classList.remove('hidden');
@@ -410,8 +323,7 @@
                 document.getElementById('file-name').innerText = "נבחר: " + file.name;
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    cvFileData = e.target.result.split(',')[1];
-                    cvFileName = file.name; cvFileMime = file.type;
+                    cvFileData = e.target.result.split(',')[1]; cvFileName = file.name; cvFileMime = file.type;
                     saveProgress();
                 };
                 reader.readAsDataURL(file);
@@ -432,13 +344,8 @@
 
             if (!isValid) return;
 
-            candidateDetails.name = name;
-            candidateDetails.phone = phone;
-            candidateDetails.city = city;
-            candidateDetails.branch = branch;
-            candidateDetails.cvData = cvFileData;
-            candidateDetails.cvName = cvFileName;
-            candidateDetails.cvMime = cvFileMime;
+            candidateDetails.name = name; candidateDetails.phone = phone; candidateDetails.city = city; candidateDetails.branch = branch;
+            candidateDetails.cvData = cvFileData; candidateDetails.cvName = cvFileName; candidateDetails.cvMime = cvFileMime;
             saveProgress();
 
             document.getElementById('registration-section').classList.add('hidden');
@@ -451,53 +358,34 @@
             showCurrentQuestion();
         }
 
-        // === פונקציית עדכון ערך סליידר ===
         function updateSliderValue(slider, id) {
             document.getElementById(id).innerText = slider.value;
         }
 
         function showCurrentQuestion() {
             const q = questions[currentQIndex];
-            
             const titleEl = document.getElementById('question-title');
             titleEl.innerText = q.text;
-            
-            titleEl.classList.remove('fade-in-text');
-            void titleEl.offsetWidth; 
-            titleEl.classList.add('fade-in-text');
+            titleEl.classList.remove('fade-in-text'); void titleEl.offsetWidth; titleEl.classList.add('fade-in-text');
 
             document.getElementById('q-number').innerText = (currentQIndex + 1).toString().padStart(2, '0');
             document.getElementById('p-fill').style.width = ((currentQIndex) / questions.length) * 100 + '%';
             showError('error-answer', false);
-            
             document.getElementById('coach-tip').classList.remove('visible'); 
 
-            tabSwitchCount = 0;
-            questionStartTime = Date.now();
+            tabSwitchCount = 0; questionStartTime = Date.now();
 
-            if (currentQIndex > 0) {
-                document.getElementById('btn-prev').classList.remove('hidden');
-                document.getElementById('btn-prev').style.display = 'block';
-            } else {
-                document.getElementById('btn-prev').classList.add('hidden');
-                document.getElementById('btn-prev').style.display = 'none';
-            }
+            if (currentQIndex > 0) { document.getElementById('btn-prev').classList.remove('hidden'); document.getElementById('btn-prev').style.display = 'block'; }
+            else { document.getElementById('btn-prev').classList.add('hidden'); document.getElementById('btn-prev').style.display = 'none'; }
 
             const textBox = document.getElementById('answer-box');
             const selectBox = document.getElementById('select-box');
             const slidersBox = document.getElementById('sliders-container');
             
-            textBox.value = ''; 
-            selectBox.innerHTML = '';
-            slidersBox.innerHTML = '';
+            textBox.value = ''; selectBox.innerHTML = ''; slidersBox.innerHTML = '';
 
-            // === לוגיקה לתצוגת שאלות (טקסט / בחירה / סליידרים) ===
             if (q.type === 'sliders') {
-                textBox.classList.add('hidden'); 
-                selectBox.classList.add('hidden'); 
-                slidersBox.classList.remove('hidden');
-                
-                // בניית הסליידרים דינמית
+                textBox.classList.add('hidden'); selectBox.classList.add('hidden'); slidersBox.classList.remove('hidden');
                 q.options.forEach((opt, idx) => {
                     const wrapper = document.createElement('div');
                     wrapper.className = 'slider-wrapper';
@@ -510,36 +398,22 @@
                     `;
                     slidersBox.appendChild(wrapper);
                 });
-
             } else if (q.type === 'select') {
-                textBox.classList.add('hidden'); 
-                slidersBox.classList.add('hidden');
-                selectBox.classList.remove('hidden');
-                
+                textBox.classList.add('hidden'); slidersBox.classList.add('hidden'); selectBox.classList.remove('hidden');
                 const defaultOpt = document.createElement('option'); defaultOpt.text = "בחר תשובה..."; defaultOpt.value = ""; defaultOpt.disabled = true; defaultOpt.selected = true; selectBox.add(defaultOpt);
                 q.options.forEach(opt => { const el = document.createElement('option'); el.text = opt; el.value = opt; selectBox.add(el); });
                 selectBox.focus();
             } else {
-                slidersBox.classList.add('hidden'); 
-                selectBox.classList.add('hidden'); 
-                textBox.classList.remove('hidden'); 
-                textBox.focus();
+                slidersBox.classList.add('hidden'); selectBox.classList.add('hidden'); textBox.classList.remove('hidden'); textBox.focus();
             }
         }
 
         function prevQuestion() {
             if (currentQIndex > 0) {
                 currentQIndex--;
-                const lastEntry = myAnswers.pop(); 
-                saveProgress(); 
-                showCurrentQuestion(); 
-                // שחזור בסיסי של התשובה האחרונה
-                if (questions[currentQIndex].type === 'select') {
-                    document.getElementById('select-box').value = lastEntry.answer;
-                } else if (questions[currentQIndex].type === 'text') {
-                    document.getElementById('answer-box').value = lastEntry.answer;
-                }
-                // בסליידרים כרגע לא משחזרים את המיקום (חוזר ל-5), כדי לא לסבך את הקוד
+                const lastEntry = myAnswers.pop(); saveProgress(); showCurrentQuestion(); 
+                if (questions[currentQIndex].type === 'select') document.getElementById('select-box').value = lastEntry.answer;
+                else if (questions[currentQIndex].type === 'text') document.getElementById('answer-box').value = lastEntry.answer;
             }
         }
 
@@ -549,7 +423,6 @@
             const timeTaken = Math.round((Date.now() - questionStartTime) / 1000);
 
             if (q.type === 'sliders') {
-                // איסוף נתונים מכל הסליידרים לרצף טקסט אחד
                 let values = [];
                 q.options.forEach((opt, idx) => {
                     const val = document.getElementById(`slider-${idx}`).value;
@@ -566,15 +439,8 @@
                 textBox.style.borderColor = "#ddd";
             }
 
-            myAnswers.push({ 
-                questionId: q.id, 
-                answer: answerValue,
-                timeSeconds: timeTaken,
-                switchedTabs: tabSwitchCount
-            });
-            
-            currentQIndex++;
-            saveProgress();
+            myAnswers.push({ questionId: q.id, answer: answerValue, timeSeconds: timeTaken, switchedTabs: tabSwitchCount });
+            currentQIndex++; saveProgress();
 
             if (currentQIndex < questions.length) { showCurrentQuestion(); } else { document.getElementById('p-fill').style.width = '100%'; await sendResults(); }
         }
