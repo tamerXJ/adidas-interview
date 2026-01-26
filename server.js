@@ -8,6 +8,7 @@ const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123"; 
 
+// מודל ברירת מחדל
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -38,40 +39,44 @@ app.get('/api/admin/candidates', async (req, res) => {
     }
 });
 
-// === פונקציית Retry מתוקנת ===
+// === פונקציית AI משודרגת: מטפלת גם בעומס (429) וגם במודל חסר (404) ===
 async function fetchAIWithRetry(promptText, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
+            console.log(`🤖 Trying AI with model: ${ACTIVE_MODEL} (Attempt ${i + 1}/${retries})`);
+            
             const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
             });
 
-            // אם 429 (עומס)
+            // === טיפול בשגיאת 404 (מודל לא נמצא) ===
+            if (aiResponse.status === 404) {
+                console.warn(`⚠️ Model ${ACTIVE_MODEL} not found (404). Switching to gemini-pro...`);
+                ACTIVE_MODEL = "gemini-pro"; // החלפה למודל הישן והטוב
+                continue; // נסה שוב מיד עם המודל החדש
+            }
+
+            // === טיפול בשגיאת 429 (עומס) ===
             if (aiResponse.status === 429) {
-                // אם זה הניסיון האחרון - אנחנו מוותרים וזורקים שגיאה
-                if (i === retries - 1) {
-                    throw new Error("Rate limit exceeded (429) - exhausted all retries");
-                }
-                
+                if (i === retries - 1) throw new Error("Rate limit exceeded (429) - exhausted all retries");
                 console.warn(`⚠️ Rate limit (429). Retrying in ${(i + 1) * 3} seconds...`);
-                await sleep(3000 * (i + 1)); // הגדלתי ל-3 שניות, 6 שניות וכו'
-                continue; // נסה שוב
+                await sleep(3000 * (i + 1));
+                continue;
             }
 
             if (!aiResponse.ok) {
-                throw new Error(`AI Error: ${aiResponse.status}`);
+                throw new Error(`AI Error: ${aiResponse.status} ${aiResponse.statusText}`);
             }
 
-            return await aiResponse.json(); // החזרת תשובה תקינה
+            return await aiResponse.json();
 
         } catch (error) {
-            // אם זו שגיאה רגילה וזה הניסיון האחרון - זרוק אותה החוצה
             if (i === retries - 1) throw error;
         }
     }
-    throw new Error("Unknown AI Error"); // למקרה חירום שלא נכנסנו ל-return
+    throw new Error("Unknown AI Error");
 }
 
 function cleanJSON(text) {
@@ -130,7 +135,7 @@ app.post('/api/submit-interview', async (req, res) => {
 
     let analysis = { 
         score: 0, 
-        general: "ממתין לניתוח (תקלת עומס AI)", 
+        general: "ממתין לניתוח (תקלת AI)", 
         strengths: "-", 
         weaknesses: "-", 
         recommendation: "לבדיקה ידנית" 
@@ -159,9 +164,9 @@ app.post('/api/submit-interview', async (req, res) => {
         JSON Structure: {"score": 0-100, "general": "Hebrew summary", "strengths": "Hebrew", "weaknesses": "Hebrew", "recommendation": "Yes/No (Hebrew)"}
         `;
 
+        // שימוש בפונקציה החדשה
         const aiData = await fetchAIWithRetry(promptText);
         
-        // הגנה קריטית: אם aiData ריק, זרוק שגיאה כדי לעבור ל-catch
         if (!aiData || !aiData.candidates) {
             throw new Error("AI returned empty response");
         }
@@ -180,7 +185,6 @@ app.post('/api/submit-interview', async (req, res) => {
 
     } catch (e) {
         console.error("⚠️ Final AI Failure:", e.message);
-        // אנחנו לא עוצרים את השמירה!
     }
 
     try {
@@ -201,5 +205,4 @@ app.post('/api/submit-interview', async (req, res) => {
 
 app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
-    // אנחנו מוחקים את findWorkingModel כדי לחסוך קריאות מיותרות שגורמות ל-429
 });
