@@ -6,43 +6,41 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123"; 
 
+// מודל ברירת מחדל
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// === נתיבים ===
-
+// נתיב ראשי
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
-// === API דשבורד: קורא עכשיו ישירות מגוגל שיטס! ===
-app.get('/api/admin/candidates', async (req, res) => {
-    const { password } = req.query;
-    if (password !== ADMIN_PASSWORD) {
-        return res.status(401).json({ error: "סיסמה שגויה" });
-    }
-
+// פונקציה לניסיון מציאת מודל תקין
+async function findWorkingModel() {
     try {
-        // משיכת הנתונים מהסקריפט של גוגל (doGet)
-        const response = await fetch(GOOGLE_SHEET_URL);
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+        if (!response.ok) return;
         const data = await response.json();
-        
-        // מחזיר את הנתונים הפוך (הכי חדש למעלה)
-        res.json(data.reverse());
-    } catch (error) {
-        console.error("Error fetching from sheets:", error);
-        res.status(500).json({ error: "תקלה בטעינת נתונים מגוגל שיטס" });
-    }
-});
+        if (data.models) {
+            const preferred = data.models.find(m => m.name.includes('gemini-1.5-flash')) || 
+                              data.models.find(m => m.name.includes('gemini-pro'));
+            if (preferred) ACTIVE_MODEL = preferred.name.replace("models/", "");
+        }
+    } catch (error) { console.error("Error finding model", error); }
+}
 
+function cleanJSON(text) {
+    text = text.replace(/```json/g, "").replace(/```/g, "");
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) { return text.substring(firstBrace, lastBrace + 1); }
+    return text;
+}
+
+// === מאגר השאלות ===
 const ROLES_QUESTIONS = {
     "sales": [
         { id: 1, text: "העבודה באדידס דורשת עמידה ממושכת ומשמרות לילה/סופ\"ש. האם יש מגבלה?", type: "select", options: ["זמין להכל", "מגבלה חלקית", "לא יכול"] },
@@ -78,26 +76,6 @@ const ROLES_QUESTIONS = {
     ]
 };
 
-async function findWorkingModel() {
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
-        if (!response.ok) return;
-        const data = await response.json();
-        if (data.models) {
-            const preferred = data.models.find(m => m.name.includes('gemini-1.5-flash'));
-            if (preferred) ACTIVE_MODEL = preferred.name.replace("models/", "");
-        }
-    } catch (error) { console.error("Error finding model", error); }
-}
-
-function cleanJSON(text) {
-    text = text.replace(/```json/g, "").replace(/```/g, "");
-    const firstBrace = text.indexOf('{');
-    const lastBrace = text.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1) { return text.substring(firstBrace, lastBrace + 1); }
-    return text;
-}
-
 app.get('/api/get-questions', (req, res) => { 
     const role = req.query.role || "sales";
     const questionSet = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
@@ -110,45 +88,38 @@ app.post('/api/submit-interview', async (req, res) => {
     
     console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name} (${role})...`);
 
-    const currentQuestions = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
+    // ברירת מחדל למקרה של כישלון ב-AI
+    let analysis = { 
+        score: 0, 
+        general: "הנתונים נקלטו (ממתין לניתוח ידני)", 
+        strengths: "-", 
+        weaknesses: "-", 
+        recommendation: "נדרשת בדיקה" 
+    };
 
+    // === שלב 1: ניסיון לפנות ל-AI ===
     try {
         let answersText = "";
+        const currentQuestions = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
         answers.forEach((ans) => {
             const qObj = currentQuestions.find(q => q.id === ans.questionId);
             answersText += `Question: ${qObj ? qObj.text : ''}\nAnswer: ${ans.answer}\n[METADATA: Time Taken=${ans.timeSeconds}s, Tab Switches=${ans.switchedTabs}]\n\n`;
         });
 
-        let roleInstruction = "";
-        if (role === "store_manager") {
-            roleInstruction = "Evaluate for a STORE MANAGER. Focus on KPI understanding, Leadership, and Strategy.";
-        } else if (role === "shift_manager") {
-            roleInstruction = "Evaluate for a SHIFT MANAGER. Focus on Operations, Team Motivation, and Responsibility.";
-        } else {
-            roleInstruction = "Evaluate for a SALES ASSOCIATE. Focus on Service, Sales Drive, and Teamwork.";
-        }
+        let roleInstruction = "Evaluate this candidate.";
+        if (role === "store_manager") roleInstruction = "Evaluate for STORE MANAGER (Strategy, KPI, HR).";
+        else if (role === "shift_manager") roleInstruction = "Evaluate for SHIFT MANAGER (Ops, Leadership).";
+        else roleInstruction = "Evaluate for SALES ASSOCIATE (Service, Energy).";
 
         const promptText = `
         You are a recruiting expert for Adidas. Analyze the interview below.
-        
         Candidate Name: ${candidate.name}
         Role: ${role}
-        Interview Data:
-        ${answersText}
-
+        Interview Data: ${answersText}
         INSTRUCTIONS:
         1. ${roleInstruction}
-        2. CHECK INTEGRITY: High tab switches (>2) or very short times = lower score.
-        3. Output valid JSON only.
-
-        JSON Structure:
-        {
-          "score": 5, 
-          "general": "Summary in Hebrew",
-          "strengths": "Strengths in Hebrew",
-          "weaknesses": "Weaknesses in Hebrew",
-          "recommendation": "Yes/No (in Hebrew)"
-        }
+        2. Output valid JSON only.
+        JSON Structure: {"score": 0-100, "general": "Hebrew summary", "strengths": "Hebrew", "weaknesses": "Hebrew", "recommendation": "Yes/No (Hebrew)"}
         `;
 
         const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${API_KEY}`, {
@@ -157,34 +128,51 @@ app.post('/api/submit-interview', async (req, res) => {
             body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
         });
 
-        if (!aiResponse.ok) { throw new Error(`API Error: ${aiResponse.status}`); }
+        if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            let aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+            const cleanedText = cleanJSON(aiText);
+            const parsedAnalysis = JSON.parse(cleanedText);
+            
+            analysis = {
+                score: parseInt(parsedAnalysis.score) || 0,
+                general: parsedAnalysis.general || analysis.general,
+                strengths: parsedAnalysis.strengths || analysis.strengths,
+                weaknesses: parsedAnalysis.weaknesses || analysis.weaknesses,
+                recommendation: parsedAnalysis.recommendation || analysis.recommendation
+            };
+            console.log(`🤖 ציון סופי: ${analysis.score}`);
+        } else {
+            console.error(`⚠️ AI Error: ${aiResponse.status}`);
+        }
 
-        const aiData = await aiResponse.json();
-        let aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        const cleanedText = cleanJSON(aiText);
-        
-        let analysis = { score: 0 };
-        try { analysis = JSON.parse(cleanedText); analysis.score = parseInt(analysis.score) || 0; } 
-        catch (e) { console.error("❌ JSON Parse Failed"); }
+    } catch (aiError) {
+        console.error("⚠️ AI Analysis Failed (Saving anyway):", aiError.message);
+    }
 
-        console.log(`🤖 ציון סופי: ${analysis.score}`);
+    // === שלב 2: שמירה וגיבוי בשיטס (תמיד!) ===
+    try {
+        const savedCandidate = { 
+            id: Date.now().toString(),
+            date: new Date().toLocaleString("he-IL"),
+            ...candidate, 
+            ...analysis 
+        };
 
-        // === שליחה לשיטס (doPost) ===
-        // שים לב: אנחנו לא שומרים יותר בזיכרון המקומי, רק בשיטס!
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
             await fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...candidate, ...analysis })
+                body: JSON.stringify(savedCandidate)
             });
             console.log("✅ נשמר באקסל");
         }
 
         res.json({ message: "OK" });
 
-    } catch (error) {
-        console.error("🔥 System Error:", error.message);
-        res.json({ message: "Error" });
+    } catch (saveError) {
+        console.error("🔥 Save Error:", saveError.message);
+        res.status(500).json({ message: "Error saving data" });
     }
 });
 
