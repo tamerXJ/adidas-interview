@@ -6,13 +6,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123"; 
 
-// רשימת מודלים לגיבוי למקרה שהסריקה נכשלת
-const FALLBACK_MODELS = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro", "gemini-pro"];
-let ACTIVE_MODEL = "gemini-1.5-flash"; // ברירת מחדל
-
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+// משתמשים במודל הישן והטוב שעבד לך בהתחלה
+let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -21,101 +17,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
-});
-
-app.get('/api/admin/candidates', async (req, res) => {
-    const { password } = req.query;
-    if (password !== ADMIN_PASSWORD) {
-        return res.status(401).json({ error: "סיסמה שגויה" });
-    }
-    try {
-        const response = await fetch(GOOGLE_SHEET_URL);
-        const data = await response.json();
-        res.json(data.reverse());
-    } catch (error) {
-        console.error("Sheet Error:", error);
-        res.status(500).json({ error: "תקלה בטעינת נתונים" });
-    }
-});
-
-// === פונקציה חכמה למציאת מודל פעיל ===
-async function findWorkingModel() {
-    console.log("🔍 Scanning for available AI models...");
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
-        if (!response.ok) {
-            console.warn("⚠️ Could not list models. Using default:", ACTIVE_MODEL);
-            return;
-        }
-        const data = await response.json();
-        if (data.models) {
-            // מחפש את המודל הכי טוב שזמין לך בחשבון
-            const preferred = data.models.find(m => m.name.includes('gemini-1.5-flash')) || 
-                              data.models.find(m => m.name.includes('gemini-1.5-pro')) ||
-                              data.models.find(m => m.name.includes('gemini-1.0-pro')) ||
-                              data.models.find(m => m.name.includes('gemini-pro'));
-            
-            if (preferred) {
-                ACTIVE_MODEL = preferred.name.replace("models/", "");
-                console.log(`✅ ACTIVE_MODEL set to: ${ACTIVE_MODEL}`);
-            } else {
-                console.log("⚠️ No preferred model found, staying with default.");
-            }
-        }
-    } catch (error) {
-        console.error("❌ Model scan failed:", error.message);
-    }
-}
-
-// === פונקציית שליחה עם ניהול תקלות מתקדם ===
-async function fetchAIWithRetry(promptText, retries = 3) {
-    let currentModel = ACTIVE_MODEL;
-    
-    for (let i = 0; i < retries; i++) {
-        try {
-            console.log(`🤖 Attempt ${i + 1}/${retries} using ${currentModel}...`);
-            
-            const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${API_KEY}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-            });
-
-            // טיפול ב-404 (מודל לא קיים) -> נסה מודל אחר מהרשימה
-            if (aiResponse.status === 404) {
-                console.warn(`⚠️ Model ${currentModel} returned 404.`);
-                // מנסה לקחת את המודל הבא ברשימה
-                const nextIndex = (FALLBACK_MODELS.indexOf(currentModel) + 1) % FALLBACK_MODELS.length;
-                currentModel = FALLBACK_MODELS[nextIndex];
-                console.log(`🔄 Switching to backup model: ${currentModel}`);
-                continue; 
-            }
-
-            // טיפול ב-429 (עומס) -> המתנה
-            if (aiResponse.status === 429) {
-                if (i === retries - 1) throw new Error("Rate limit 429 - exhausted retries");
-                const waitTime = 3000 * (i + 1);
-                console.warn(`⚠️ Rate limit. Waiting ${waitTime/1000}s...`);
-                await sleep(waitTime);
-                continue;
-            }
-
-            if (!aiResponse.ok) {
-                throw new Error(`AI Status: ${aiResponse.status}`);
-            }
-
-            return await aiResponse.json();
-
-        } catch (error) {
-            console.error(`❌ Attempt ${i + 1} failed: ${error.message}`);
-            if (i === retries - 1) throw error;
-        }
-    }
-    throw new Error("All AI attempts failed");
-}
-
+// פונקציה פשוטה לניקוי JSON
 function cleanJSON(text) {
     text = text.replace(/```json/g, "").replace(/```/g, "");
     const firstBrace = text.indexOf('{');
@@ -124,6 +26,7 @@ function cleanJSON(text) {
     return text;
 }
 
+// שאלות (אותו מאגר)
 const ROLES_QUESTIONS = {
     "sales": [
         { id: 1, text: "העבודה באדידס דורשת עמידה ממושכת ומשמרות לילה/סופ\"ש. האם יש מגבלה?", type: "select", options: ["זמין להכל", "מגבלה חלקית", "לא יכול"] },
@@ -170,14 +73,16 @@ app.post('/api/submit-interview', async (req, res) => {
     
     console.log(`\n⏳ Processing: ${candidate.name} (${role})...`);
 
+    // אובייקט ברירת מחדל
     let analysis = { 
         score: 0, 
         general: "ממתין לניתוח (תקלת AI)", 
         strengths: "-", 
         weaknesses: "-", 
-        recommendation: "לבדיקה ידנית" 
+        recommendation: "לבדיקה" 
     };
 
+    // 1. נסיון אחד ויחיד מול ה-AI (בלי Retry ובלי Fallback)
     try {
         let answersText = "";
         const currentQuestions = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
@@ -186,25 +91,29 @@ app.post('/api/submit-interview', async (req, res) => {
             answersText += `Q: ${qObj ? qObj.text : ''}\nA: ${ans.answer}\n[Time=${ans.timeSeconds}s]\n\n`;
         });
 
-        let roleInstruction = "Evaluate this candidate.";
-        if (role === "store_manager") roleInstruction = "Evaluate for STORE MANAGER (Strategy, KPI, HR).";
-        else if (role === "shift_manager") roleInstruction = "Evaluate for SHIFT MANAGER (Ops, Leadership).";
-        else roleInstruction = "Evaluate for SALES ASSOCIATE (Service, Energy).";
-
         const promptText = `
         You are a recruiting expert for Adidas. Analyze this interview.
         Candidate: ${candidate.name}, Role: ${role}
         Data: ${answersText}
         INSTRUCTIONS:
-        1. ${roleInstruction}
+        1. Evaluate fit for the role.
         2. Output valid JSON only.
         JSON Structure: {"score": 0-100, "general": "Hebrew summary", "strengths": "Hebrew", "weaknesses": "Hebrew", "recommendation": "Yes/No (Hebrew)"}
         `;
 
-        const aiData = await fetchAIWithRetry(promptText);
+        console.log("🤖 Sending request to Gemini...");
         
-        if (!aiData || !aiData.candidates) throw new Error("AI returned empty response");
+        const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+        });
 
+        if (!aiResponse.ok) {
+            throw new Error(`AI API Error: ${aiResponse.status} ${aiResponse.statusText}`);
+        }
+
+        const aiData = await aiResponse.json();
         let aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
         const parsed = JSON.parse(cleanJSON(aiText));
         
@@ -215,13 +124,14 @@ app.post('/api/submit-interview', async (req, res) => {
             weaknesses: parsed.weaknesses || analysis.weaknesses,
             recommendation: parsed.recommendation || analysis.recommendation
         };
-        console.log(`🤖 Score: ${analysis.score}`);
+        console.log(`✅ AI Success! Score: ${analysis.score}`);
 
     } catch (e) {
-        console.error("⚠️ Final AI Failure:", e.message);
+        console.error("❌ AI Failed:", e.message);
+        // ממשיכים לשמירה גם אם נכשל
     }
 
-    // שמירה לשיטס
+    // 2. שמירה לגוגל שיטס
     try {
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
             await fetch(GOOGLE_SHEET_URL, {
@@ -240,5 +150,5 @@ app.post('/api/submit-interview', async (req, res) => {
 
 app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
-    await findWorkingModel(); // הרצת סריקת מודלים בהפעלה
+    // ביטלתי את סריקת המודלים בהתחלה כדי למנוע עומס
 });
