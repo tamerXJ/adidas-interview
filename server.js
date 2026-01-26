@@ -10,7 +10,6 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
-// === פונקציית עזר להמתנה (למניעת עומס) ===
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 app.use(express.json({ limit: '10mb' })); 
@@ -39,7 +38,7 @@ app.get('/api/admin/candidates', async (req, res) => {
     }
 });
 
-// === פונקציה חכמה שמנסה 3 פעמים מול ה-AI ===
+// === פונקציית Retry מתוקנת ===
 async function fetchAIWithRetry(promptText, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
@@ -49,23 +48,38 @@ async function fetchAIWithRetry(promptText, retries = 3) {
                 body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
             });
 
-            // אם קיבלנו שגיאת עומס (429), נחכה וננסה שוב
+            // אם 429 (עומס)
             if (aiResponse.status === 429) {
-                console.warn(`⚠️ Rate limit (429). Retrying in ${(i + 1) * 2} seconds...`);
-                await sleep(2000 * (i + 1)); // המתנה מדורגת: 2 שניות, 4 שניות...
-                continue;
+                // אם זה הניסיון האחרון - אנחנו מוותרים וזורקים שגיאה
+                if (i === retries - 1) {
+                    throw new Error("Rate limit exceeded (429) - exhausted all retries");
+                }
+                
+                console.warn(`⚠️ Rate limit (429). Retrying in ${(i + 1) * 3} seconds...`);
+                await sleep(3000 * (i + 1)); // הגדלתי ל-3 שניות, 6 שניות וכו'
+                continue; // נסה שוב
             }
 
             if (!aiResponse.ok) {
                 throw new Error(`AI Error: ${aiResponse.status}`);
             }
 
-            return await aiResponse.json(); // הצלחה!
+            return await aiResponse.json(); // החזרת תשובה תקינה
 
         } catch (error) {
-            if (i === retries - 1) throw error; // אם זה הניסיון האחרון, זרוק שגיאה
+            // אם זו שגיאה רגילה וזה הניסיון האחרון - זרוק אותה החוצה
+            if (i === retries - 1) throw error;
         }
     }
+    throw new Error("Unknown AI Error"); // למקרה חירום שלא נכנסנו ל-return
+}
+
+function cleanJSON(text) {
+    text = text.replace(/```json/g, "").replace(/```/g, "");
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) { return text.substring(firstBrace, lastBrace + 1); }
+    return text;
 }
 
 const ROLES_QUESTIONS = {
@@ -103,30 +117,6 @@ const ROLES_QUESTIONS = {
     ]
 };
 
-async function findWorkingModel() {
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
-        if (!response.ok) return;
-        const data = await response.json();
-        if (data.models) {
-            const preferred = data.models.find(m => m.name.includes('gemini-1.5-flash')) || 
-                              data.models.find(m => m.name.includes('gemini-pro'));
-            if (preferred) {
-                ACTIVE_MODEL = preferred.name.replace("models/", "");
-                console.log(`✅ Active Model: ${ACTIVE_MODEL}`);
-            }
-        }
-    } catch (error) { console.error("Model check failed", error); }
-}
-
-function cleanJSON(text) {
-    text = text.replace(/```json/g, "").replace(/```/g, "");
-    const firstBrace = text.indexOf('{');
-    const lastBrace = text.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1) { return text.substring(firstBrace, lastBrace + 1); }
-    return text;
-}
-
 app.get('/api/get-questions', (req, res) => { 
     const role = req.query.role || "sales";
     res.json(ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"]); 
@@ -138,7 +128,6 @@ app.post('/api/submit-interview', async (req, res) => {
     
     console.log(`\n⏳ Processing: ${candidate.name} (${role})...`);
 
-    // ברירת מחדל למקרה של כישלון מוחלט
     let analysis = { 
         score: 0, 
         general: "ממתין לניתוח (תקלת עומס AI)", 
@@ -170,9 +159,13 @@ app.post('/api/submit-interview', async (req, res) => {
         JSON Structure: {"score": 0-100, "general": "Hebrew summary", "strengths": "Hebrew", "weaknesses": "Hebrew", "recommendation": "Yes/No (Hebrew)"}
         `;
 
-        // === שימוש בפונקציית ה-Retry החדשה ===
         const aiData = await fetchAIWithRetry(promptText);
         
+        // הגנה קריטית: אם aiData ריק, זרוק שגיאה כדי לעבור ל-catch
+        if (!aiData || !aiData.candidates) {
+            throw new Error("AI returned empty response");
+        }
+
         let aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
         const parsed = JSON.parse(cleanJSON(aiText));
         
@@ -187,10 +180,9 @@ app.post('/api/submit-interview', async (req, res) => {
 
     } catch (e) {
         console.error("⚠️ Final AI Failure:", e.message);
-        // ממשיכים לשמירה גם אם ה-AI נכשל סופית
+        // אנחנו לא עוצרים את השמירה!
     }
 
-    // === שמירה לשיטס (תמיד מתבצעת) ===
     try {
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
             await fetch(GOOGLE_SHEET_URL, {
@@ -209,5 +201,5 @@ app.post('/api/submit-interview', async (req, res) => {
 
 app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
-    await findWorkingModel();
+    // אנחנו מוחקים את findWorkingModel כדי לחסוך קריאות מיותרות שגורמות ל-429
 });
