@@ -4,10 +4,10 @@ const path = require('path');
 const app = express();
 
 const PORT = process.env.PORT || 3000;
+
 const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
 
-// משתמשים במודל הישן והטוב שעבד לך בהתחלה
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
 app.use(express.json({ limit: '10mb' })); 
@@ -17,20 +17,12 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// פונקציה פשוטה לניקוי JSON
-function cleanJSON(text) {
-    text = text.replace(/```json/g, "").replace(/```/g, "");
-    const firstBrace = text.indexOf('{');
-    const lastBrace = text.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1) { return text.substring(firstBrace, lastBrace + 1); }
-    return text;
-}
-
-// שאלות (אותו מאגר)
+// === מאגר השאלות המעודכן (עם סליידרים) ===
 const ROLES_QUESTIONS = {
     "sales": [
         { id: 1, text: "העבודה באדידס דורשת עמידה ממושכת ומשמרות לילה/סופ\"ש. האם יש מגבלה?", type: "select", options: ["זמין להכל", "מגבלה חלקית", "לא יכול"] },
         { id: 2, text: "האם יש לך דרך הגעה עצמאית למשמרות (גם בסופ\"ש)?", type: "select", options: ["כן, יש לי רכב צמוד", "תחב\"צ (מוגבל)", "אין דרך הגעה"] },
+        // === שאלה 3 החדשה: סליידרים למוכרן ===
         { id: 3, text: "דרג/י את עצמך בתכונות הבאות (1=נמוך, 10=גבוה):", type: "sliders", options: ["אנרגיה ומכירות", "עבודת צוות", "סבלנות ללקוחות", "חיבור לאופנה וספורט"] },
         { id: 4, text: "תאר/י סיטואציה שבה נתת שירות מעל ומעבר ללקוח.", type: "text" },
         { id: 5, text: "לקוח כועס צועק עליך ליד אנשים אחרים. מה התגובה הראשונה שלך?", type: "text" },
@@ -41,6 +33,7 @@ const ROLES_QUESTIONS = {
     "shift_manager": [
         { id: 1, text: "כמה ניסיון יש לך בניהול משמרת או צוות עובדים?", type: "select", options: ["אין ניסיון", "עד שנה", "מעל שנה"] },
         { id: 2, text: "שני עובדים רבים באמצע המשמרת מול לקוחות. איך אתה פועל באותו רגע?", type: "text" },
+        // === שאלה 3 החדשה: סליידרים לאחמ"ש ===
         { id: 3, text: "איך אתה מעריך את היכולות שלך בניהול? (גרור את הסמן)", type: "sliders", options: ["אסרטיביות מול עובדים", "פתרון בעיות בזמן אמת", "ניהול משימות במקביל", "שירותיות"] },
         { id: 4, text: "יש עומס מטורף בחנות ואתה רואה שעובד אחד מדבר בטלפון בצד. איך תגיב?", type: "text" },
         { id: 5, text: "לקוח דורש \"מנהל\" וצועק על עובד שלך. איך אתה ניגש לסיטואציה?", type: "text" },
@@ -52,6 +45,7 @@ const ROLES_QUESTIONS = {
     "store_manager": [
         { id: 1, text: "כמה שנים ניהלת חנות או יחידת רווח והפסד (P&L)?", type: "select", options: ["אין ניסיון ניהולי", "1-2 שנים", "3 שנים ומעלה"] },
         { id: 2, text: "החנות לא עומדת ביעד המרה (Conversion) כבר חודש. מה תוכנית הפעולה שלך?", type: "text" },
+        // === שאלה 3 החדשה: סליידרים למנהל ===
         { id: 3, text: "דירוג עצמי של מיומנויות ניהול:", type: "sliders", options: ["ראייה עסקית (KPI)", "פיתוח והדרכת עובדים", "גיוס כוח אדם", "עמידה תחת לחץ"] },
         { id: 4, text: "עובד ותיק ומוערך נשחק, מאחר למשמרות ומוכר פחות. איך תבצע שיחת משוב?", type: "text" },
         { id: 5, text: "איך אתה מגייס עובדים איכותיים? מה הדבר הכי חשוב שאתה מחפש במועמד?", type: "text" },
@@ -62,93 +56,120 @@ const ROLES_QUESTIONS = {
     ]
 };
 
+async function findWorkingModel() {
+    console.log("🔍 סורק מודלים זמינים בחשבון Google AI...");
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+        if (!response.ok) { throw new Error(`שגיאה בגישה ל-API: ${response.status}`); }
+        const data = await response.json();
+        if (data.models) {
+            const preferred = data.models.find(m => m.name.includes('gemini-1.5-flash'));
+            const any = data.models.find(m => m.name.includes('gemini') && m.supportedGenerationMethods.includes('generateContent'));
+            if (preferred || any) {
+                ACTIVE_MODEL = (preferred || any).name.replace("models/", "");
+                console.log(`✅ מודל נבחר: ${ACTIVE_MODEL}`);
+            }
+        }
+    } catch (error) { console.error("❌ שגיאת מודל:", error.message); }
+}
+
+function cleanJSON(text) {
+    text = text.replace(/```json/g, "").replace(/```/g, "");
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) { return text.substring(firstBrace, lastBrace + 1); }
+    return text;
+}
+
 app.get('/api/get-questions', (req, res) => { 
     const role = req.query.role || "sales";
-    res.json(ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"]); 
+    const questionSet = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
+    res.json(questionSet); 
 });
 
 app.post('/api/submit-interview', async (req, res) => {
     const { candidate, answers } = req.body;
     const role = candidate.role || "sales";
     
-    console.log(`\n⏳ Processing: ${candidate.name} (${role})...`);
+    console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name} (${role})...`);
 
-    // אובייקט ברירת מחדל
-    let analysis = { 
-        score: 0, 
-        general: "ממתין לניתוח (תקלת AI)", 
-        strengths: "-", 
-        weaknesses: "-", 
-        recommendation: "לבדיקה" 
-    };
+    const currentQuestions = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
 
-    // 1. נסיון אחד ויחיד מול ה-AI (בלי Retry ובלי Fallback)
     try {
         let answersText = "";
-        const currentQuestions = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
         answers.forEach((ans) => {
             const qObj = currentQuestions.find(q => q.id === ans.questionId);
-            answersText += `Q: ${qObj ? qObj.text : ''}\nA: ${ans.answer}\n[Time=${ans.timeSeconds}s]\n\n`;
+            answersText += `Question: ${qObj ? qObj.text : ''}\nAnswer: ${ans.answer}\n[METADATA: Time Taken=${ans.timeSeconds}s, Tab Switches=${ans.switchedTabs}]\n\n`;
         });
 
+        let roleInstruction = "";
+        if (role === "store_manager") {
+            roleInstruction = "Evaluate for a STORE MANAGER. Focus on KPI understanding, Leadership, and Strategy.";
+        } else if (role === "shift_manager") {
+            roleInstruction = "Evaluate for a SHIFT MANAGER. Focus on Operations, Team Motivation, and Responsibility.";
+        } else {
+            roleInstruction = "Evaluate for a SALES ASSOCIATE. Focus on Service, Sales Drive, and Teamwork.";
+        }
+
         const promptText = `
-        You are a recruiting expert for Adidas. Analyze this interview.
-        Candidate: ${candidate.name}, Role: ${role}
-        Data: ${answersText}
+        You are a recruiting expert for Adidas. Analyze the interview below.
+        
+        Candidate Name: ${candidate.name}
+        Role: ${role}
+        Interview Data:
+        ${answersText}
+
         INSTRUCTIONS:
-        1. Evaluate fit for the role.
-        2. Output valid JSON only.
-        JSON Structure: {"score": 0-100, "general": "Hebrew summary", "strengths": "Hebrew", "weaknesses": "Hebrew", "recommendation": "Yes/No (Hebrew)"}
+        1. ${roleInstruction}
+        2. CHECK INTEGRITY: High tab switches (>2) or very short times = lower score.
+        3. Output valid JSON only.
+
+        JSON Structure:
+        {
+          "score": 5, 
+          "general": "Summary in Hebrew",
+          "strengths": "Strengths in Hebrew",
+          "weaknesses": "Weaknesses in Hebrew",
+          "recommendation": "Yes/No (in Hebrew)"
+        }
         `;
 
-        console.log("🤖 Sending request to Gemini...");
-        
         const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
         });
 
-        if (!aiResponse.ok) {
-            throw new Error(`AI API Error: ${aiResponse.status} ${aiResponse.statusText}`);
-        }
+        if (!aiResponse.ok) { throw new Error(`API Error: ${aiResponse.status}`); }
 
         const aiData = await aiResponse.json();
         let aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-        const parsed = JSON.parse(cleanJSON(aiText));
+        const cleanedText = cleanJSON(aiText);
         
-        analysis = {
-            score: parseInt(parsed.score) || 0,
-            general: parsed.general || analysis.general,
-            strengths: parsed.strengths || analysis.strengths,
-            weaknesses: parsed.weaknesses || analysis.weaknesses,
-            recommendation: parsed.recommendation || analysis.recommendation
-        };
-        console.log(`✅ AI Success! Score: ${analysis.score}`);
+        let analysis = { score: 0 };
+        try { analysis = JSON.parse(cleanedText); analysis.score = parseInt(analysis.score) || 0; } 
+        catch (e) { console.error("❌ JSON Parse Failed"); }
 
-    } catch (e) {
-        console.error("❌ AI Failed:", e.message);
-        // ממשיכים לשמירה גם אם נכשל
-    }
+        console.log(`🤖 ציון סופי: ${analysis.score}`);
 
-    // 2. שמירה לגוגל שיטס
-    try {
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
             await fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...candidate, ...analysis })
             });
-            console.log("✅ Saved to Sheets");
+            console.log("✅ נשמר באקסל");
         }
+
         res.json({ message: "OK" });
-    } catch (e) {
-        console.error("🔥 Save Error:", e.message);
-        res.status(500).json({ message: "Error" });
+
+    } catch (error) {
+        console.error("🔥 System Error:", error.message);
+        res.json({ message: "Error" });
     }
 });
 
 app.listen(PORT, async () => {
-    console.log(`Server running on port ${PORT}`);
-    // ביטלתי את סריקת המודלים בהתחלה כדי למנוע עומס
+    console.log(`Server is running on port ${PORT}`);
+    await findWorkingModel();
 });
