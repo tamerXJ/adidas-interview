@@ -8,8 +8,9 @@ const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123"; 
 
-// מודל ברירת מחדל
-let ACTIVE_MODEL = "gemini-1.5-flash"; 
+// רשימת מודלים לגיבוי למקרה שהסריקה נכשלת
+const FALLBACK_MODELS = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro", "gemini-pro"];
+let ACTIVE_MODEL = "gemini-1.5-flash"; // ברירת מחדל
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -39,44 +40,80 @@ app.get('/api/admin/candidates', async (req, res) => {
     }
 });
 
-// === פונקציית AI משודרגת: מטפלת גם בעומס (429) וגם במודל חסר (404) ===
+// === פונקציה חכמה למציאת מודל פעיל ===
+async function findWorkingModel() {
+    console.log("🔍 Scanning for available AI models...");
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+        if (!response.ok) {
+            console.warn("⚠️ Could not list models. Using default:", ACTIVE_MODEL);
+            return;
+        }
+        const data = await response.json();
+        if (data.models) {
+            // מחפש את המודל הכי טוב שזמין לך בחשבון
+            const preferred = data.models.find(m => m.name.includes('gemini-1.5-flash')) || 
+                              data.models.find(m => m.name.includes('gemini-1.5-pro')) ||
+                              data.models.find(m => m.name.includes('gemini-1.0-pro')) ||
+                              data.models.find(m => m.name.includes('gemini-pro'));
+            
+            if (preferred) {
+                ACTIVE_MODEL = preferred.name.replace("models/", "");
+                console.log(`✅ ACTIVE_MODEL set to: ${ACTIVE_MODEL}`);
+            } else {
+                console.log("⚠️ No preferred model found, staying with default.");
+            }
+        }
+    } catch (error) {
+        console.error("❌ Model scan failed:", error.message);
+    }
+}
+
+// === פונקציית שליחה עם ניהול תקלות מתקדם ===
 async function fetchAIWithRetry(promptText, retries = 3) {
+    let currentModel = ACTIVE_MODEL;
+    
     for (let i = 0; i < retries; i++) {
         try {
-            console.log(`🤖 Trying AI with model: ${ACTIVE_MODEL} (Attempt ${i + 1}/${retries})`);
+            console.log(`🤖 Attempt ${i + 1}/${retries} using ${currentModel}...`);
             
-            const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${API_KEY}`, {
+            const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
             });
 
-            // === טיפול בשגיאת 404 (מודל לא נמצא) ===
+            // טיפול ב-404 (מודל לא קיים) -> נסה מודל אחר מהרשימה
             if (aiResponse.status === 404) {
-                console.warn(`⚠️ Model ${ACTIVE_MODEL} not found (404). Switching to gemini-pro...`);
-                ACTIVE_MODEL = "gemini-pro"; // החלפה למודל הישן והטוב
-                continue; // נסה שוב מיד עם המודל החדש
+                console.warn(`⚠️ Model ${currentModel} returned 404.`);
+                // מנסה לקחת את המודל הבא ברשימה
+                const nextIndex = (FALLBACK_MODELS.indexOf(currentModel) + 1) % FALLBACK_MODELS.length;
+                currentModel = FALLBACK_MODELS[nextIndex];
+                console.log(`🔄 Switching to backup model: ${currentModel}`);
+                continue; 
             }
 
-            // === טיפול בשגיאת 429 (עומס) ===
+            // טיפול ב-429 (עומס) -> המתנה
             if (aiResponse.status === 429) {
-                if (i === retries - 1) throw new Error("Rate limit exceeded (429) - exhausted all retries");
-                console.warn(`⚠️ Rate limit (429). Retrying in ${(i + 1) * 3} seconds...`);
-                await sleep(3000 * (i + 1));
+                if (i === retries - 1) throw new Error("Rate limit 429 - exhausted retries");
+                const waitTime = 3000 * (i + 1);
+                console.warn(`⚠️ Rate limit. Waiting ${waitTime/1000}s...`);
+                await sleep(waitTime);
                 continue;
             }
 
             if (!aiResponse.ok) {
-                throw new Error(`AI Error: ${aiResponse.status} ${aiResponse.statusText}`);
+                throw new Error(`AI Status: ${aiResponse.status}`);
             }
 
             return await aiResponse.json();
 
         } catch (error) {
+            console.error(`❌ Attempt ${i + 1} failed: ${error.message}`);
             if (i === retries - 1) throw error;
         }
     }
-    throw new Error("Unknown AI Error");
+    throw new Error("All AI attempts failed");
 }
 
 function cleanJSON(text) {
@@ -164,12 +201,9 @@ app.post('/api/submit-interview', async (req, res) => {
         JSON Structure: {"score": 0-100, "general": "Hebrew summary", "strengths": "Hebrew", "weaknesses": "Hebrew", "recommendation": "Yes/No (Hebrew)"}
         `;
 
-        // שימוש בפונקציה החדשה
         const aiData = await fetchAIWithRetry(promptText);
         
-        if (!aiData || !aiData.candidates) {
-            throw new Error("AI returned empty response");
-        }
+        if (!aiData || !aiData.candidates) throw new Error("AI returned empty response");
 
         let aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
         const parsed = JSON.parse(cleanJSON(aiText));
@@ -187,6 +221,7 @@ app.post('/api/submit-interview', async (req, res) => {
         console.error("⚠️ Final AI Failure:", e.message);
     }
 
+    // שמירה לשיטס
     try {
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
             await fetch(GOOGLE_SHEET_URL, {
@@ -205,4 +240,5 @@ app.post('/api/submit-interview', async (req, res) => {
 
 app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
+    await findWorkingModel(); // הרצת סריקת מודלים בהפעלה
 });
