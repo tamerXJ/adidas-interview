@@ -10,60 +10,62 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
+// === פונקציית עזר להמתנה (למניעת עומס) ===
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// === 1. נתיבים (Routes) ===
-
-// דף הבית (הראיון)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// דשבורד ניהול (נתיב ישיר לקובץ)
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// API לקבלת נתונים לדשבורד (מושך מהשיטס)
 app.get('/api/admin/candidates', async (req, res) => {
     const { password } = req.query;
     if (password !== ADMIN_PASSWORD) {
         return res.status(401).json({ error: "סיסמה שגויה" });
     }
-
     try {
         const response = await fetch(GOOGLE_SHEET_URL);
         const data = await response.json();
-        // מחזיר את הרשימה הפוכה (הכי חדש למעלה)
         res.json(data.reverse());
     } catch (error) {
-        console.error("Sheet Fetch Error:", error);
+        console.error("Sheet Error:", error);
         res.status(500).json({ error: "תקלה בטעינת נתונים" });
     }
 });
 
-// === 2. לוגיקת AI ושמירה ===
+// === פונקציה חכמה שמנסה 3 פעמים מול ה-AI ===
+async function fetchAIWithRetry(promptText, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+            });
 
-async function findWorkingModel() {
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
-        if (!response.ok) return;
-        const data = await response.json();
-        if (data.models) {
-            const preferred = data.models.find(m => m.name.includes('gemini-1.5-flash')) || 
-                              data.models.find(m => m.name.includes('gemini-pro'));
-            if (preferred) ACTIVE_MODEL = preferred.name.replace("models/", "");
+            // אם קיבלנו שגיאת עומס (429), נחכה וננסה שוב
+            if (aiResponse.status === 429) {
+                console.warn(`⚠️ Rate limit (429). Retrying in ${(i + 1) * 2} seconds...`);
+                await sleep(2000 * (i + 1)); // המתנה מדורגת: 2 שניות, 4 שניות...
+                continue;
+            }
+
+            if (!aiResponse.ok) {
+                throw new Error(`AI Error: ${aiResponse.status}`);
+            }
+
+            return await aiResponse.json(); // הצלחה!
+
+        } catch (error) {
+            if (i === retries - 1) throw error; // אם זה הניסיון האחרון, זרוק שגיאה
         }
-    } catch (error) { console.error("Model Error", error); }
-}
-
-function cleanJSON(text) {
-    text = text.replace(/```json/g, "").replace(/```/g, "");
-    const firstBrace = text.indexOf('{');
-    const lastBrace = text.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1) { return text.substring(firstBrace, lastBrace + 1); }
-    return text;
+    }
 }
 
 const ROLES_QUESTIONS = {
@@ -101,6 +103,30 @@ const ROLES_QUESTIONS = {
     ]
 };
 
+async function findWorkingModel() {
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.models) {
+            const preferred = data.models.find(m => m.name.includes('gemini-1.5-flash')) || 
+                              data.models.find(m => m.name.includes('gemini-pro'));
+            if (preferred) {
+                ACTIVE_MODEL = preferred.name.replace("models/", "");
+                console.log(`✅ Active Model: ${ACTIVE_MODEL}`);
+            }
+        }
+    } catch (error) { console.error("Model check failed", error); }
+}
+
+function cleanJSON(text) {
+    text = text.replace(/```json/g, "").replace(/```/g, "");
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) { return text.substring(firstBrace, lastBrace + 1); }
+    return text;
+}
+
 app.get('/api/get-questions', (req, res) => { 
     const role = req.query.role || "sales";
     res.json(ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"]); 
@@ -112,17 +138,16 @@ app.post('/api/submit-interview', async (req, res) => {
     
     console.log(`\n⏳ Processing: ${candidate.name} (${role})...`);
 
-    // ברירת מחדל
+    // ברירת מחדל למקרה של כישלון מוחלט
     let analysis = { 
         score: 0, 
-        general: "ממתין לניתוח (תקלת AI)", 
+        general: "ממתין לניתוח (תקלת עומס AI)", 
         strengths: "-", 
         weaknesses: "-", 
-        recommendation: "לבדיקה" 
+        recommendation: "לבדיקה ידנית" 
     };
 
     try {
-        // הכנת הטקסט ל-AI
         let answersText = "";
         const currentQuestions = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
         answers.forEach((ans) => {
@@ -145,34 +170,27 @@ app.post('/api/submit-interview', async (req, res) => {
         JSON Structure: {"score": 0-100, "general": "Hebrew summary", "strengths": "Hebrew", "weaknesses": "Hebrew", "recommendation": "Yes/No (Hebrew)"}
         `;
 
-        const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-        });
-
-        if (aiResponse.ok) {
-            const aiData = await aiResponse.json();
-            const text = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-            const parsed = JSON.parse(cleanJSON(text));
-            
-            analysis = {
-                score: parseInt(parsed.score) || 0,
-                general: parsed.general || analysis.general,
-                strengths: parsed.strengths || analysis.strengths,
-                weaknesses: parsed.weaknesses || analysis.weaknesses,
-                recommendation: parsed.recommendation || analysis.recommendation
-            };
-            console.log(`🤖 Score: ${analysis.score}`);
-        } else {
-            console.error(`⚠️ AI Error: ${aiResponse.status}`);
-        }
+        // === שימוש בפונקציית ה-Retry החדשה ===
+        const aiData = await fetchAIWithRetry(promptText);
+        
+        let aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        const parsed = JSON.parse(cleanJSON(aiText));
+        
+        analysis = {
+            score: parseInt(parsed.score) || 0,
+            general: parsed.general || analysis.general,
+            strengths: parsed.strengths || analysis.strengths,
+            weaknesses: parsed.weaknesses || analysis.weaknesses,
+            recommendation: parsed.recommendation || analysis.recommendation
+        };
+        console.log(`🤖 Score: ${analysis.score}`);
 
     } catch (e) {
-        console.error("⚠️ AI Failed:", e.message);
+        console.error("⚠️ Final AI Failure:", e.message);
+        // ממשיכים לשמירה גם אם ה-AI נכשל סופית
     }
 
-    // שליחה לשיטס (חובה!)
+    // === שמירה לשיטס (תמיד מתבצעת) ===
     try {
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
             await fetch(GOOGLE_SHEET_URL, {
