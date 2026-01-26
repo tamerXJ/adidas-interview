@@ -6,27 +6,41 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123"; // סיסמה לדשבורד (ברירת מחדל admin123)
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123"; 
 
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
-// === מסד נתונים בזיכרון (עבור הדשבורד) ===
-let candidatesStore = [];
-
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.static(path.join(__dirname, 'public')));
+
+// === נתיבים ===
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// === נקודת קצה חדשה לדשבורד הניהול ===
-app.get('/api/admin/candidates', (req, res) => {
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// === API דשבורד: קורא עכשיו ישירות מגוגל שיטס! ===
+app.get('/api/admin/candidates', async (req, res) => {
     const { password } = req.query;
     if (password !== ADMIN_PASSWORD) {
         return res.status(401).json({ error: "סיסמה שגויה" });
     }
-    res.json(candidatesStore.reverse()); // מחזיר את המועמדים (החדש ביותר למעלה)
+
+    try {
+        // משיכת הנתונים מהסקריפט של גוגל (doGet)
+        const response = await fetch(GOOGLE_SHEET_URL);
+        const data = await response.json();
+        
+        // מחזיר את הנתונים הפוך (הכי חדש למעלה)
+        res.json(data.reverse());
+    } catch (error) {
+        console.error("Error fetching from sheets:", error);
+        res.status(500).json({ error: "תקלה בטעינת נתונים מגוגל שיטס" });
+    }
 });
 
 const ROLES_QUESTIONS = {
@@ -155,22 +169,15 @@ app.post('/api/submit-interview', async (req, res) => {
 
         console.log(`🤖 ציון סופי: ${analysis.score}`);
 
-        // === שמירה בדשבורד (זיכרון שרת) ===
-        const savedCandidate = { 
-            id: Date.now().toString(),
-            date: new Date().toLocaleString("he-IL"),
-            ...candidate, 
-            ...analysis 
-        };
-        candidatesStore.push(savedCandidate);
-
-        // === שמירה באקסל (גיבוי) ===
+        // === שליחה לשיטס (doPost) ===
+        // שים לב: אנחנו לא שומרים יותר בזיכרון המקומי, רק בשיטס!
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
-            fetch(GOOGLE_SHEET_URL, {
+            await fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(savedCandidate)
-            }).catch(e => console.error("Sheet Error", e));
+                body: JSON.stringify({ ...candidate, ...analysis })
+            });
+            console.log("✅ נשמר באקסל");
         }
 
         res.json({ message: "OK" });
