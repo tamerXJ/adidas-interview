@@ -4,11 +4,14 @@ const path = require('path');
 const app = express();
 
 const PORT = process.env.PORT || 3000;
-
 const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123"; // סיסמה לדשבורד (ברירת מחדל admin123)
 
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
+
+// === מסד נתונים בזיכרון (עבור הדשבורד) ===
+let candidatesStore = [];
 
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -17,12 +20,19 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// === מאגר השאלות המעודכן (עם סליידרים) ===
+// === נקודת קצה חדשה לדשבורד הניהול ===
+app.get('/api/admin/candidates', (req, res) => {
+    const { password } = req.query;
+    if (password !== ADMIN_PASSWORD) {
+        return res.status(401).json({ error: "סיסמה שגויה" });
+    }
+    res.json(candidatesStore.reverse()); // מחזיר את המועמדים (החדש ביותר למעלה)
+});
+
 const ROLES_QUESTIONS = {
     "sales": [
         { id: 1, text: "העבודה באדידס דורשת עמידה ממושכת ומשמרות לילה/סופ\"ש. האם יש מגבלה?", type: "select", options: ["זמין להכל", "מגבלה חלקית", "לא יכול"] },
         { id: 2, text: "האם יש לך דרך הגעה עצמאית למשמרות (גם בסופ\"ש)?", type: "select", options: ["כן, יש לי רכב צמוד", "תחב\"צ (מוגבל)", "אין דרך הגעה"] },
-        // === שאלה 3 החדשה: סליידרים למוכרן ===
         { id: 3, text: "דרג/י את עצמך בתכונות הבאות (1=נמוך, 10=גבוה):", type: "sliders", options: ["אנרגיה ומכירות", "עבודת צוות", "סבלנות ללקוחות", "חיבור לאופנה וספורט"] },
         { id: 4, text: "תאר/י סיטואציה שבה נתת שירות מעל ומעבר ללקוח.", type: "text" },
         { id: 5, text: "לקוח כועס צועק עליך ליד אנשים אחרים. מה התגובה הראשונה שלך?", type: "text" },
@@ -33,7 +43,6 @@ const ROLES_QUESTIONS = {
     "shift_manager": [
         { id: 1, text: "כמה ניסיון יש לך בניהול משמרת או צוות עובדים?", type: "select", options: ["אין ניסיון", "עד שנה", "מעל שנה"] },
         { id: 2, text: "שני עובדים רבים באמצע המשמרת מול לקוחות. איך אתה פועל באותו רגע?", type: "text" },
-        // === שאלה 3 החדשה: סליידרים לאחמ"ש ===
         { id: 3, text: "איך אתה מעריך את היכולות שלך בניהול? (גרור את הסמן)", type: "sliders", options: ["אסרטיביות מול עובדים", "פתרון בעיות בזמן אמת", "ניהול משימות במקביל", "שירותיות"] },
         { id: 4, text: "יש עומס מטורף בחנות ואתה רואה שעובד אחד מדבר בטלפון בצד. איך תגיב?", type: "text" },
         { id: 5, text: "לקוח דורש \"מנהל\" וצועק על עובד שלך. איך אתה ניגש לסיטואציה?", type: "text" },
@@ -45,7 +54,6 @@ const ROLES_QUESTIONS = {
     "store_manager": [
         { id: 1, text: "כמה שנים ניהלת חנות או יחידת רווח והפסד (P&L)?", type: "select", options: ["אין ניסיון ניהולי", "1-2 שנים", "3 שנים ומעלה"] },
         { id: 2, text: "החנות לא עומדת ביעד המרה (Conversion) כבר חודש. מה תוכנית הפעולה שלך?", type: "text" },
-        // === שאלה 3 החדשה: סליידרים למנהל ===
         { id: 3, text: "דירוג עצמי של מיומנויות ניהול:", type: "sliders", options: ["ראייה עסקית (KPI)", "פיתוח והדרכת עובדים", "גיוס כוח אדם", "עמידה תחת לחץ"] },
         { id: 4, text: "עובד ותיק ומוערך נשחק, מאחר למשמרות ומוכר פחות. איך תבצע שיחת משוב?", type: "text" },
         { id: 5, text: "איך אתה מגייס עובדים איכותיים? מה הדבר הכי חשוב שאתה מחפש במועמד?", type: "text" },
@@ -57,20 +65,15 @@ const ROLES_QUESTIONS = {
 };
 
 async function findWorkingModel() {
-    console.log("🔍 סורק מודלים זמינים בחשבון Google AI...");
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
-        if (!response.ok) { throw new Error(`שגיאה בגישה ל-API: ${response.status}`); }
+        if (!response.ok) return;
         const data = await response.json();
         if (data.models) {
             const preferred = data.models.find(m => m.name.includes('gemini-1.5-flash'));
-            const any = data.models.find(m => m.name.includes('gemini') && m.supportedGenerationMethods.includes('generateContent'));
-            if (preferred || any) {
-                ACTIVE_MODEL = (preferred || any).name.replace("models/", "");
-                console.log(`✅ מודל נבחר: ${ACTIVE_MODEL}`);
-            }
+            if (preferred) ACTIVE_MODEL = preferred.name.replace("models/", "");
         }
-    } catch (error) { console.error("❌ שגיאת מודל:", error.message); }
+    } catch (error) { console.error("Error finding model", error); }
 }
 
 function cleanJSON(text) {
@@ -152,13 +155,22 @@ app.post('/api/submit-interview', async (req, res) => {
 
         console.log(`🤖 ציון סופי: ${analysis.score}`);
 
+        // === שמירה בדשבורד (זיכרון שרת) ===
+        const savedCandidate = { 
+            id: Date.now().toString(),
+            date: new Date().toLocaleString("he-IL"),
+            ...candidate, 
+            ...analysis 
+        };
+        candidatesStore.push(savedCandidate);
+
+        // === שמירה באקסל (גיבוי) ===
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
-            await fetch(GOOGLE_SHEET_URL, {
+            fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...candidate, ...analysis })
-            });
-            console.log("✅ נשמר באקסל");
+                body: JSON.stringify(savedCandidate)
+            }).catch(e => console.error("Sheet Error", e));
         }
 
         res.json({ message: "OK" });
