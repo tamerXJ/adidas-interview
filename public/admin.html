@@ -27,10 +27,10 @@
         
         /* Table */
         .table-wrapper { background: #fff; border-radius: 8px; overflow-x: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
         thead { background: #000; color: #fff; }
         th { text-align: right; padding: 15px; font-size: 14px; font-weight: 500; }
-        td { padding: 15px; border-bottom: 1px solid #eee; font-size: 14px; color: #333; }
+        td { padding: 15px; border-bottom: 1px solid #eee; font-size: 14px; color: #333; vertical-align: middle; }
         tr:hover { background-color: #f9f9f9; }
         
         /* Badges */
@@ -47,9 +47,9 @@
         .modal-close { position: absolute; top: 15px; left: 15px; font-size: 24px; cursor: pointer; color: #999; }
         .detail-row { margin-bottom: 15px; }
         .detail-label { font-weight: 700; font-size: 13px; color: #555; display: block; margin-bottom: 4px; }
-        .detail-text { font-size: 15px; line-height: 1.5; color: #000; white-space: pre-wrap; }
+        .detail-text { font-size: 15px; line-height: 1.5; color: #000; white-space: pre-wrap; background: #f9f9f9; padding: 10px; border-radius: 6px; }
         
-        .action-btn { background: #000; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .action-btn { background: #000; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
         .action-btn:hover { opacity: 0.8; }
     </style>
 </head>
@@ -66,7 +66,7 @@
 
     <div id="app-content" style="display:none;">
         <div class="navbar">
-            <div class="logo">ADIDAS RECRUITMENT</div>
+            <div class="logo">ADIDAS RECRUIT</div>
             <div id="refresh-time" style="font-size:12px; color:#555;"></div>
         </div>
 
@@ -74,15 +74,15 @@
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-title">סה"כ מועמדים</div>
-                    <div class="stat-value" id="val-total">-</div>
+                    <div class="stat-value" id="val-total">0</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-title">ציון ממוצע</div>
-                    <div class="stat-value" id="val-avg">-</div>
+                    <div class="stat-value" id="val-avg">0</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-title">מועמדים חזקים (80+)</div>
-                    <div class="stat-value" id="val-top">-</div>
+                    <div class="stat-value" id="val-top">0</div>
                 </div>
             </div>
 
@@ -94,15 +94,16 @@
                             <th>תאריך</th>
                             <th>שם מלא</th>
                             <th>תפקיד</th>
-                            <th>עיר מגורים</th>
+                            <th>עיר</th>
                             <th>סניף</th>
+                            <th>טלפון</th>
                             <th>ציון</th>
                             <th>המלצה</th>
                             <th>פעולות</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
-                        <tr><td colspan="8" style="text-align:center;">טוען נתונים...</td></tr>
+                        <tr><td colspan="9" style="text-align:center; padding:20px;">טוען נתונים...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -113,15 +114,28 @@
         <div class="modal">
             <span class="modal-close" onclick="closeModal()">&times;</span>
             <h2 id="m-name" style="margin-top:0;">פרטי מועמד</h2>
-            <div class="detail-row"><span class="detail-label">טלפון:</span><span id="m-phone" class="detail-text"></span></div>
-            <hr style="border:0; border-top:1px solid #eee;">
-            <div class="detail-row"><span class="detail-label">סיכום AI:</span><div id="m-general" class="detail-text"></div></div>
-            <div class="detail-row"><span class="detail-label">חוזקות:</span><div id="m-strengths" class="detail-text" style="color:#27ae60;"></div></div>
-            <div class="detail-row"><span class="detail-label">חולשות:</span><div id="m-weaknesses" class="detail-text" style="color:#c0392b;"></div></div>
+            
+            <div class="detail-row">
+                <span class="detail-label">סיכום AI כללי:</span>
+                <div id="m-general" class="detail-text"></div>
+            </div>
+            
+            <div class="detail-row">
+                <span class="detail-label">חוזקות בולטות:</span>
+                <div id="m-strengths" class="detail-text" style="color:#155724; background:#d4edda;"></div>
+            </div>
+            
+            <div class="detail-row">
+                <span class="detail-label">חולשות / נקודות לשיפור:</span>
+                <div id="m-weaknesses" class="detail-text" style="color:#721c24; background:#f8d7da;"></div>
+            </div>
         </div>
     </div>
 
     <script>
+        // משתנה גלובלי לשמירת הנתונים בצד הלקוח (לתיקון באג הכפתורים)
+        let allCandidatesData = [];
+
         async function attemptLogin() {
             const pass = document.getElementById('pass-input').value;
             try {
@@ -131,6 +145,7 @@
                     return;
                 }
                 const data = await res.json();
+                allCandidatesData = data; // שמירה בזיכרון
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('app-content').style.display = 'block';
                 renderData(data);
@@ -140,49 +155,71 @@
         }
 
         function renderData(data) {
-            // KPI Calc
+            // חישוב מדדים (KPI)
             document.getElementById('val-total').innerText = data.length;
-            const avg = data.length ? (data.reduce((acc, c) => acc + (parseInt(c.score)||0), 0) / data.length).toFixed(1) : 0;
+            
+            const validScores = data.filter(c => c.score && !isNaN(c.score));
+            const avg = validScores.length ? (validScores.reduce((acc, c) => acc + parseInt(c.score), 0) / validScores.length).toFixed(1) : 0;
             document.getElementById('val-avg').innerText = avg;
+            
             const top = data.filter(c => (parseInt(c.score)||0) >= 80).length;
             document.getElementById('val-top').innerText = top;
+            
             document.getElementById('refresh-time').innerText = "עודכן: " + new Date().toLocaleTimeString();
 
-            // Table
+            // בניית הטבלה
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
 
-            data.forEach(item => {
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">אין נתונים להצגה</td></tr>';
+                return;
+            }
+
+            data.forEach((item, index) => {
                 const score = parseInt(item.score) || 0;
                 let scoreClass = 'score-low';
                 if (score >= 80) scoreClass = 'score-high';
                 else if (score >= 60) scoreClass = 'score-med';
 
-                // המרת תאריך (גוגל שיטס מחזיר פורמט ארוך)
                 let dateStr = item.date;
                 try { dateStr = new Date(item.date).toLocaleDateString('he-IL'); } catch(e){}
+
+                // מנקה נתונים חסרים
+                const city = item.city || "-";
+                const role = item.role || "-";
+                const phone = item.phone || "-";
+                
+                // קיצור המלצה ארוכה
+                let recShort = item.recommendation || "-";
+                if (recShort.length > 30) recShort = recShort.substring(0, 30) + "...";
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${dateStr}</td>
                     <td style="font-weight:600">${item.name}</td>
-                    <td><span class="tag tag-role">${item.role}</span></td>
-                    <td>${item.city || '-'}</td>
+                    <td><span class="tag tag-role">${role}</span></td>
+                    <td>${city}</td>
                     <td>${item.branch}</td>
+                    <td style="direction:ltr; text-align:right;">${phone}</td>
                     <td><span class="tag tag-score ${scoreClass}">${score}</span></td>
-                    <td>${item.recommendation}</td>
-                    <td><button class="action-btn" onclick='openModal(${JSON.stringify(item)})'>צפה</button></td>
+                    <td style="font-size:12px; color:#555;">${recShort}</td>
+                    <td><button class="action-btn" onclick="openModal(${index})">צפה</button></td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        function openModal(item) {
-            document.getElementById('m-name').innerText = item.name + " (ציון: " + item.score + ")";
-            document.getElementById('m-phone').innerText = item.phone;
-            document.getElementById('m-general').innerText = item.general;
-            document.getElementById('m-strengths').innerText = item.strengths;
-            document.getElementById('m-weaknesses').innerText = item.weaknesses;
+        function openModal(index) {
+            // שולף את הנתונים מהזיכרון לפי האינדקס
+            const item = allCandidatesData[index];
+            if (!item) return;
+
+            document.getElementById('m-name').innerText = item.name + " (ציון: " + (item.score || 0) + ")";
+            document.getElementById('m-general').innerText = item.general || "אין סיכום זמין";
+            document.getElementById('m-strengths').innerText = item.strengths || "-";
+            document.getElementById('m-weaknesses').innerText = item.weaknesses || "-";
+            
             document.getElementById('modal-view').style.display = 'flex';
         }
 
