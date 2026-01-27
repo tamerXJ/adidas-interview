@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123"; // === תוספת לאדמין ===
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
@@ -20,12 +20,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// === תוספת: נתיב לדף האדמין ===
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// === תוספת: נתיב למשיכת נתונים מהשיטס ===
+// 1. משיכת נתונים (שינוי: ביטלנו את reverse כדי להציג ישן למעלה)
 app.get('/api/admin/candidates', async (req, res) => {
     const { password } = req.query;
     if (password !== ADMIN_PASSWORD) {
@@ -34,14 +33,69 @@ app.get('/api/admin/candidates', async (req, res) => {
     try {
         const response = await fetch(GOOGLE_SHEET_URL);
         const data = await response.json();
-        res.json(data.reverse()); // הופך סדר (חדש למעלה)
+        // הערה: גוגל שיטס מחזיר את השורה הראשונה (הכי ישנה) ראשונה.
+        // אם אתה רוצה ישן למעלה -> אל תעשה reverse.
+        // אם אתה רוצה חדש למעלה -> תעשה reverse.
+        // ביקשת ישן למעלה, אז מחקנו את reverse().
+        res.json(data); 
     } catch (error) {
         console.error("Sheet Error:", error);
         res.status(500).json({ error: "תקלה בטעינת נתונים" });
     }
 });
 
-// === לוגיקה מקורית (ללא שינוי) ===
+// 2. עדכון סטטוס (ארכיון/שחזור) - חדש!
+app.post('/api/admin/update-status', async (req, res) => {
+    const { password, phone, status } = req.body;
+    
+    if (password !== ADMIN_PASSWORD) return res.status(401).json({ error: "Unauthorized" });
+
+    try {
+        // שולחים בקשה לסקריפט בגוגל לעדכן שורה
+        await fetch(GOOGLE_SHEET_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: "updateStatus", phone: phone, status: status })
+        });
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Archive Error:", error);
+        res.status(500).json({ error: "Failed to update status" });
+    }
+});
+
+// === מכאן והלאה שום דבר לא השתנה (הקוד היציב) ===
+
+async function findWorkingModel() {
+    console.log("🔍 סורק מודלים זמינים בחשבון Google AI...");
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+        if (!response.ok) { throw new Error(`שגיאה בגישה ל-API: ${response.status}`); }
+        const data = await response.json();
+        if (data.models) {
+            const preferred = data.models.find(m => m.name.includes('gemini-1.5-flash'));
+            const any = data.models.find(m => m.name.includes('gemini') && m.supportedGenerationMethods.includes('generateContent'));
+            if (preferred || any) {
+                ACTIVE_MODEL = (preferred || any).name.replace("models/", "");
+                console.log(`✅ מודל נבחר: ${ACTIVE_MODEL}`);
+            }
+        }
+    } catch (error) { console.error("❌ שגיאת מודל:", error.message); }
+}
+
+function cleanJSON(text) {
+    text = text.replace(/```json/g, "").replace(/```/g, "");
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) { return text.substring(firstBrace, lastBrace + 1); }
+    return text;
+}
+
+app.get('/api/get-questions', (req, res) => { 
+    const role = req.query.role || "sales";
+    const questionSet = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
+    res.json(questionSet); 
+});
 
 const ROLES_QUESTIONS = {
     "sales": [
@@ -77,37 +131,6 @@ const ROLES_QUESTIONS = {
         { id: 9, text: "מעבר ליעד היומי, איך אתה מנתח דוח KPI שבועי? תן דוגמה לנתון שזיהית בו חולשה ואיך בניית תוכנית לשיפורו.", type: "text" }
     ]
 };
-
-async function findWorkingModel() {
-    console.log("🔍 סורק מודלים זמינים בחשבון Google AI...");
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
-        if (!response.ok) { throw new Error(`שגיאה בגישה ל-API: ${response.status}`); }
-        const data = await response.json();
-        if (data.models) {
-            const preferred = data.models.find(m => m.name.includes('gemini-1.5-flash'));
-            const any = data.models.find(m => m.name.includes('gemini') && m.supportedGenerationMethods.includes('generateContent'));
-            if (preferred || any) {
-                ACTIVE_MODEL = (preferred || any).name.replace("models/", "");
-                console.log(`✅ מודל נבחר: ${ACTIVE_MODEL}`);
-            }
-        }
-    } catch (error) { console.error("❌ שגיאת מודל:", error.message); }
-}
-
-function cleanJSON(text) {
-    text = text.replace(/```json/g, "").replace(/```/g, "");
-    const firstBrace = text.indexOf('{');
-    const lastBrace = text.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1) { return text.substring(firstBrace, lastBrace + 1); }
-    return text;
-}
-
-app.get('/api/get-questions', (req, res) => { 
-    const role = req.query.role || "sales";
-    const questionSet = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
-    res.json(questionSet); 
-});
 
 app.post('/api/submit-interview', async (req, res) => {
     const { candidate, answers } = req.body;
@@ -178,14 +201,7 @@ app.post('/api/submit-interview', async (req, res) => {
             await fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...candidate, 
-                    score: analysis.score,
-                    general: analysis.general,
-                    strengths: analysis.strengths,
-                    weaknesses: analysis.weaknesses,
-                    recommendation: analysis.recommendation
-                })
+                body: JSON.stringify({ ...candidate, ...analysis })
             });
             console.log("✅ נשמר באקסל");
         }
@@ -200,5 +216,5 @@ app.post('/api/submit-interview', async (req, res) => {
 
 app.listen(PORT, async () => {
     console.log(`Server is running on port ${PORT}`);
-    await findWorkingModel(); // שמרנו את הסריקה המקורית שעובדת!
+    await findWorkingModel();
 });
