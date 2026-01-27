@@ -20,7 +20,7 @@
             flex-direction: column;
         }
 
-        /* 7. רקע ממותג למסך הכניסה */
+        /* Login Background */
         #login-bg-container {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 998;
             background-image: url('https://images.microcms-assets.io/assets/1775a3633c8b428d9f011c6a758a8a5c/c0bb4fc727e24685be2532ae31ea82ea/A.jpg?w=1500&fm=webp');
@@ -35,14 +35,13 @@
         input, textarea { cursor: text; user-select: text; -webkit-user-select: text; }
         * { box-sizing: border-box; outline: none; }
         
-        /* Login Box Styles */
+        /* Login Box */
         .login-box { background: #fff; padding: 40px; border-radius: 12px; text-align: center; width: 90%; max-width: 380px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .login-logo { width: 80px; margin-bottom: 20px; opacity: 0.8; }
+        .login-logo { width: 80px; margin-bottom: 20px; opacity: 0.9; }
         .password-wrapper { position: relative; width: 100%; margin-top: 15px; }
         .login-box input { width: 100%; padding: 14px; padding-left: 45px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; transition: 0.3s; }
         .login-box input:focus { border-color: #000; }
         
-        /* 6. עין עדינה לסיסמה (SVG) */
         .toggle-password { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; opacity: 0.4; transition: 0.3s; display: flex; align-items: center; }
         .toggle-password:hover { opacity: 0.8; }
         .toggle-password svg { width: 20px; height: 20px; }
@@ -51,15 +50,14 @@
         .login-box button:hover { background: #333; }
 
         /* App Layout */
-        #app-content { flex: 1; display: none; /* מוסתר בהתחלה */ }
+        #app-content { flex: 1; display: none; }
         .navbar { background: #fff; padding: 15px 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #000; }
-        .logo { font-size: 22px; font-weight: 900; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
-        .logo img { width: 40px; }
+        .logo { font-size: 22px; font-weight: 900; letter-spacing: 1px; display: flex; align-items: center; gap: 12px; text-transform: uppercase; }
+        .logo img { width: 50px; height: auto; } /* לוגו חדש */
         
         .nav-actions { display: flex; gap: 10px; align-items: center; }
         .nav-btn { background: #f4f4f4; border: 1px solid #eee; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; transition: 0.2s; color: #333; }
         .nav-btn:hover { background: #e0e0e0; }
-        /* 4. כפתור יציאה - אדום עדין */
         .logout-btn:hover { background: #fee2e2; color: #c53030; border-color: #feb2b2; }
 
         .container { padding: 40px; max-width: 1400px; margin: 0 auto; }
@@ -75,24 +73,44 @@
         .stat-title { color: #777; font-size: 13px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
         .stat-value { font-size: 36px; font-weight: 800; color: #000; margin-top: 8px; }
 
-        /* Table */
+        /* Table - Fixed Layout */
         .table-wrapper { background: #fff; border-radius: 12px; overflow-x: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border: 1px solid #eee; }
-        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            min-width: 900px; 
+            table-layout: fixed; /* 2. קיבוע רוחב העמודות */
+        }
         thead { background: #000; color: #fff; }
-        th { text-align: right; padding: 18px; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
-        td { padding: 18px; border-bottom: 1px solid #eee; font-size: 14px; color: #333; vertical-align: middle; }
-        /* 1. תיקון ההבהוב: הוספת tbody כדי שהכותרת לא תושפע */
+        th { text-align: right; padding: 18px; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; white-space: nowrap; }
+        td { 
+            padding: 18px; 
+            border-bottom: 1px solid #eee; 
+            font-size: 14px; 
+            color: #333; 
+            vertical-align: middle; 
+            word-wrap: break-word; /* שבירת שורות אם הטקסט ארוך מדי */
+        }
+        
+        /* הגדרת רוחב לעמודות ספציפיות כדי שהטבלה תיראה טוב */
+        th:nth-child(1) { width: 100px; } /* תאריך */
+        th:nth-child(2) { width: 140px; } /* שם */
+        th:nth-child(3) { width: 110px; } /* תפקיד */
+        th:nth-child(4) { width: 100px; } /* עיר */
+        th:nth-child(6) { width: 110px; } /* טלפון */
+        th:nth-child(7) { width: 60px; text-align: center; } /* ציון */
+        th:nth-child(9) { width: 120px; } /* כפתור */
+
         tbody tr:hover { background-color: #f9f9f9; }
 
         .tag { font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 6px; display: inline-block; }
         .tag-role { background: #f0f0f0; color: #555; border: 1px solid #e0e0e0; }
         
-        /* 3. סקאלת ציונים חדשה (1-10) */
-        .tag-score { color: #fff; min-width: 40px; text-align: center; }
-        .score-excellent { background: #1e7e34; } /* 9-10 ירוק כהה */
-        .score-good { background: #28a745; }      /* 7-8 ירוק בהיר */
-        .score-average { background: #ffc107; color: #212529; } /* 5-6 צהוב */
-        .score-poor { background: #dc3545; }      /* 1-4 אדום */
+        .tag-score { color: #fff; min-width: 40px; text-align: center; display: block; margin: 0 auto; }
+        .score-excellent { background: #1e7e34; } 
+        .score-good { background: #28a745; }      
+        .score-average { background: #ffc107; color: #212529; } 
+        .score-poor { background: #dc3545; }      
 
         /* Modal */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
@@ -103,10 +121,9 @@
         .detail-label { font-weight: 800; font-size: 13px; color: #444; display: block; margin-bottom: 8px; text-transform: uppercase; }
         .detail-text { font-size: 15px; line-height: 1.6; color: #000; white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
         
-        .action-btn { background: #fff; color: #000; border: 1px solid #000; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; }
+        .action-btn { background: #fff; color: #000; border: 1px solid #000; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; width: 100%; text-align: center; }
         .action-btn:hover { background: #000; color: #fff; }
 
-        /* 5. פוטר קרדיט */
         .footer-credit { text-align: center; padding: 20px; font-size: 11px; color: #999; margin-top: auto; border-top: 1px solid #eee; background: #fff; }
     </style>
 </head>
@@ -115,12 +132,12 @@
     <div id="login-bg-container"></div>
     <div id="login-overlay">
         <div class="login-box">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" alt="Adidas" class="login-logo">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Adidas_2022_logo.svg" alt="Adidas" class="login-logo">
             <h2 style="margin-top:0; font-size: 22px;">כניסת מנהלים</h2>
             <div class="password-wrapper">
                 <input type="password" id="pass-input" placeholder="סיסמה">
-                <span class="toggle-password" onclick="togglePassword()">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off" id="eye-icon"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.55 18.55 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                <span class="toggle-password" onclick="togglePassword()" id="eye-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.55 18.55 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                 </span>
             </div>
             <button onclick="attemptLogin()">כניסה למערכת</button>
@@ -131,7 +148,7 @@
     <div id="app-content">
         <div class="navbar">
             <div class="logo">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" alt="Adidas">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Adidas_2022_logo.svg" alt="Adidas">
                 ADIDAS RECRUIT ADMIN
             </div>
             <div class="nav-actions">
@@ -225,24 +242,21 @@
         let filteredData = [];
         let currentPass = "";
 
-        // 5. כניסה עם ENTER
         document.getElementById('pass-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') attemptLogin();
         });
 
-        // 6. החלפת אייקון עין (SVG)
+        // 3. לוגיקת עין חכמה (נפתחת ונסגרת)
         function togglePassword() {
             const input = document.getElementById('pass-input');
-            const iconContainer = document.getElementById('eye-icon').parentNode;
+            const btn = document.getElementById('eye-btn');
             
             if (input.type === "password") {
                 input.type = "text";
-                // אייקון עין פתוחה
-                iconContainer.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
             } else {
                 input.type = "password";
-                 // אייקון עין סגורה
-                iconContainer.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.55 18.55 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.55 18.55 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
             }
         }
 
@@ -258,7 +272,6 @@
             await fetchData();
         }
 
-        // 4. פונקציית התנתקות
         function logout() {
             currentPass = "";
             fullData = [];
@@ -288,7 +301,6 @@
                 const data = await res.json();
                 fullData = data;
                 
-                // הסתרת מסך כניסה והצגת האפליקציה
                 document.getElementById('login-bg-container').style.display = 'none';
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('app-content').style.display = 'flex';
@@ -298,7 +310,6 @@
                 applyFilter();
             } catch (e) {
                 document.getElementById('login-msg').innerText = "שגיאת תקשורת עם השרת.";
-                console.error("Fetch error:", e);
             }
         }
 
@@ -352,7 +363,6 @@
             const avg = validScores.length ? (validScores.reduce((acc, c) => acc + parseInt(c.score), 0) / validScores.length).toFixed(1) : "0.0";
             document.getElementById('val-avg').innerText = avg;
             
-            // 2. תיקון KPI: ספירה של 8 ומעלה
             const top = data.filter(c => (parseInt(c.score)||0) >= 8).length;
             document.getElementById('val-top').innerText = top;
             
@@ -370,11 +380,10 @@
                 try {
                     const score = parseInt(item.score) || 0;
                     
-                    // 3. סקאלת צבעים חדשה (1-10)
-                    let scoreClass = 'score-poor'; // 1-4 (אדום)
-                    if (score >= 9) scoreClass = 'score-excellent'; // 9-10 (ירוק כהה)
-                    else if (score >= 7) scoreClass = 'score-good'; // 7-8 (ירוק בהיר)
-                    else if (score >= 5) scoreClass = 'score-average'; // 5-6 (צהוב)
+                    let scoreClass = 'score-poor'; 
+                    if (score >= 9) scoreClass = 'score-excellent'; 
+                    else if (score >= 7) scoreClass = 'score-good'; 
+                    else if (score >= 5) scoreClass = 'score-average'; 
 
                     let dateStr = item.date;
                     try { dateStr = new Date(item.date).toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit', year:'2-digit'}); } catch(e){}
@@ -427,7 +436,6 @@
             document.getElementById('modal-view').style.display = 'none';
         }
         
-        // אנימציה קלה לטעינה
         const style = document.createElement('style');
         style.innerHTML = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
         document.head.appendChild(style);
