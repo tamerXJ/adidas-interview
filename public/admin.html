@@ -242,6 +242,7 @@
             filteredData.forEach(row => {
                 const clean = (text) => (text || "").toString().replace(/,/g, " ");
                 let phone = clean(row.phone);
+                // תיקון טלפון באקסל
                 if (phone && !phone.startsWith('0') && phone.length > 8) phone = '0' + phone;
                 let rowStr = `${clean(row.date)},${clean(row.name)},${clean(row.role)},${clean(row.branch)},${clean(row.city)},'${phone},${clean(row.score)},${clean(row.recommendation)}`;
                 csvContent += rowStr + "\n";
@@ -282,6 +283,10 @@
                 const city = item.city || "-";
                 const role = item.role || "-";
                 let phone = item.phone || "-";
+                
+                // הסרת גרש אם קיים מהדאטהבייס
+                phone = phone.replace("'", "");
+                
                 if (phone !== "-" && !phone.startsWith('0') && phone.length > 8) {
                     phone = "0" + phone;
                 }
