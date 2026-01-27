@@ -58,7 +58,6 @@
         .nav-btn:hover { background: #e0e0e0; }
         .logout-btn:hover { background: #fee2e2; color: #c53030; border-color: #feb2b2; }
         
-        /* כפתור ארכיון בנביגציה */
         .archive-mode-btn { background: #333; color: #fff; border: none; }
         .archive-mode-btn:hover { background: #555; }
         .active-archive { background: #ffc107; color: #000; border-color: #e0a800; }
@@ -89,7 +88,7 @@
         th:nth-child(6) { width: 120px; } 
         th:nth-child(7) { width: 60px; text-align: center; }  
         th:nth-child(8) { width: 110px; } 
-        th:nth-child(9) { width: 160px; } /* הרחבנו בשביל כפתורי פעולות */
+        th:nth-child(9) { width: 160px; }
 
         tbody tr:hover { background-color: #f9f9f9; }
 
@@ -108,13 +107,15 @@
         .modal-close:hover { color: #000; }
         .detail-row { margin-bottom: 20px; }
         .detail-label { font-weight: 800; font-size: 13px; color: #444; display: block; margin-bottom: 8px; text-transform: uppercase; }
+        /* הוספתי סגנון לרשימות בתוך המודל */
         .detail-text { font-size: 15px; line-height: 1.6; color: #000; white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+        .detail-text ul, .detail-text ol { margin-right: 20px; padding: 0; }
+        .detail-text li { margin-bottom: 5px; }
         
         .actions-cell { display: flex; gap: 5px; }
         .action-btn { background: #fff; color: #000; border: 1px solid #000; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; text-align: center; flex: 1; }
         .action-btn:hover { background: #000; color: #fff; }
         
-        /* כפתורי ארכיון */
         .archive-btn { border-color: #a76d05; color: #a76d05; }
         .archive-btn:hover { background: #a76d05; color: #fff; border-color: #a76d05; }
         .restore-btn { border-color: #1e7e34; color: #1e7e34; }
@@ -242,7 +243,7 @@
         let fullData = [];
         let filteredData = [];
         let currentPass = "";
-        let isArchiveMode = false; // מצב ארכיון
+        let isArchiveMode = false; 
 
         document.getElementById('pass-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') attemptLogin();
@@ -289,7 +290,7 @@
         function toggleArchiveMode() {
             isArchiveMode = !isArchiveMode;
             updateArchiveUI();
-            applyFilter(); // סינון מחדש
+            applyFilter(); 
         }
 
         function updateArchiveUI() {
@@ -345,7 +346,6 @@
             if (!confirm(newStatus === 'archived' ? "להעביר לארכיון?" : "לשחזר לרשימה הפעילה?")) return;
 
             try {
-                // עדכון אופטימי (מיידי) לפני תשובת שרת
                 const item = fullData.find(i => (i.phone || "").replace("'","") == phone);
                 if (item) item.status = newStatus;
                 applyFilter();
@@ -358,7 +358,7 @@
                 
                 if (!res.ok) {
                     alert("שגיאה בעדכון הסטטוס");
-                    await refreshData(); // רענון למקרה של כישלון
+                    await refreshData();
                 }
             } catch (e) {
                 alert("תקלת תקשורת");
@@ -383,13 +383,11 @@
         function applyFilter() {
             const selectedBranch = document.getElementById('branch-filter').value;
             
-            // 1. סינון לפי סטטוס (פעיל / ארכיון)
             let dataByStatus = fullData.filter(item => {
                 const status = item.status || "active";
                 return isArchiveMode ? status === "archived" : status === "active";
             });
 
-            // 2. סינון לפי סניף
             if (selectedBranch === 'all') {
                 filteredData = dataByStatus;
             } else {
@@ -464,7 +462,6 @@
                         if (recDisplay.length > 25) recDisplay = recDisplay.substring(0, 25) + "...";
                     }
 
-                    // כפתורי פעולה בהתאם למצב (ארכיון/פעיל)
                     let actionBtn = '';
                     if (isArchiveMode) {
                         actionBtn = `<button class="action-btn restore-btn" onclick="updateStatus('${phoneStr.replace(/'/g,"")}', 'active')">♻️ שחזר</button>`;
@@ -492,15 +489,18 @@
             });
         }
 
+        // === תיקון כאן: שימוש ב-innerHTML כדי להציג את התגיות כעיצוב ===
         function openModal(index) {
             const item = filteredData[index];
             if (!item) return;
             
             const score = parseInt(item.score) || 0;
             document.getElementById('m-name').innerText = (item.name || "מועמד") + ` (ציון התאמה: ${score}/10)`;
-            document.getElementById('m-general').innerText = item.general || "לא התקבל סיכום ממערכת ה-AI.";
-            document.getElementById('m-strengths').innerText = item.strengths || "-";
-            document.getElementById('m-weaknesses').innerText = item.weaknesses || "-";
+            
+            // כאן השינוי החשוב:
+            document.getElementById('m-general').innerHTML = item.general || "לא התקבל סיכום ממערכת ה-AI.";
+            document.getElementById('m-strengths').innerHTML = item.strengths || "-";
+            document.getElementById('m-weaknesses').innerHTML = item.weaknesses || "-";
             
             document.getElementById('modal-view').style.display = 'flex';
         }
