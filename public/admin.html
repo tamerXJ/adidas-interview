@@ -7,134 +7,173 @@
     <style>
         :root { --brand-black: #000; --brand-white: #fff; --bg-gray: #f5f5f5; --accent: #2ecc71; }
         
-        /* 4. ביטול מוחלט של סמן מהבהב ובחירת טקסט */
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             margin: 0; 
             background-color: var(--bg-gray); 
             color: #333; 
             cursor: default; 
-            user-select: none; /* מונע סימון טקסט כחול */
+            user-select: none;
             -webkit-user-select: none;
-        }
-        
-        /* החזרת הסמן רק לשדות כתיבה */
-        input, textarea { 
-            cursor: text; 
-            user-select: text; 
-            -webkit-user-select: text;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
+        /* 7. רקע ממותג למסך הכניסה */
+        #login-bg-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 998;
+            background-image: url('https://images.microcms-assets.io/assets/1775a3633c8b428d9f011c6a758a8a5c/c0bb4fc727e24685be2532ae31ea82ea/A.jpg?w=1500&fm=webp');
+            background-repeat: no-repeat; background-position: center center; background-size: cover;
+        }
+        #login-overlay {
+             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 999;
+             background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px);
+             display: flex; justify-content: center; align-items: center; flex-direction: column;
+        }
+
+        input, textarea { cursor: text; user-select: text; -webkit-user-select: text; }
         * { box-sizing: border-box; outline: none; }
         
-        /* Login Screen */
-        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-        .login-box { background: #fff; padding: 40px; border-radius: 8px; text-align: center; width: 90%; max-width: 350px; position: relative; }
-        
+        /* Login Box Styles */
+        .login-box { background: #fff; padding: 40px; border-radius: 12px; text-align: center; width: 90%; max-width: 380px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .login-logo { width: 80px; margin-bottom: 20px; opacity: 0.8; }
         .password-wrapper { position: relative; width: 100%; margin-top: 15px; }
-        .login-box input { width: 100%; padding: 12px; padding-left: 40px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
-        .toggle-password { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px; opacity: 0.6; }
+        .login-box input { width: 100%; padding: 14px; padding-left: 45px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; transition: 0.3s; }
+        .login-box input:focus { border-color: #000; }
         
-        .login-box button { width: 100%; padding: 12px; margin-top: 15px; background: #000; color: #fff; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .login-box button:hover { opacity: 0.8; }
+        /* 6. עין עדינה לסיסמה (SVG) */
+        .toggle-password { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; opacity: 0.4; transition: 0.3s; display: flex; align-items: center; }
+        .toggle-password:hover { opacity: 0.8; }
+        .toggle-password svg { width: 20px; height: 20px; }
+        
+        .login-box button { width: 100%; padding: 14px; margin-top: 20px; background: #000; color: #fff; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: 700; transition: 0.2s; letter-spacing: 0.5px; }
+        .login-box button:hover { background: #333; }
 
-        /* Navbar & Filters */
-        .navbar { background: #fff; padding: 15px 40px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #000; }
-        .logo { font-size: 22px; font-weight: 900; letter-spacing: 1px; }
+        /* App Layout */
+        #app-content { flex: 1; display: none; /* מוסתר בהתחלה */ }
+        .navbar { background: #fff; padding: 15px 40px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #000; }
+        .logo { font-size: 22px; font-weight: 900; letter-spacing: 1px; display: flex; align-items: center; gap: 10px; }
+        .logo img { width: 40px; }
         
         .nav-actions { display: flex; gap: 10px; align-items: center; }
-        
-        .refresh-btn { background: #f0f0f0; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 5px; }
-        .refresh-btn:hover { background: #e0e0e0; }
+        .nav-btn { background: #f4f4f4; border: 1px solid #eee; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px; transition: 0.2s; color: #333; }
+        .nav-btn:hover { background: #e0e0e0; }
+        /* 4. כפתור יציאה - אדום עדין */
+        .logout-btn:hover { background: #fee2e2; color: #c53030; border-color: #feb2b2; }
 
         .container { padding: 40px; max-width: 1400px; margin: 0 auto; }
 
-        .filter-bar { background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
-        .filter-select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; min-width: 200px; cursor: pointer; }
-        .export-btn { background: #27ae60; color: #fff; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        .filter-bar { background: #fff; padding: 20px; border-radius: 12px; margin-bottom: 25px; display: flex; gap: 15px; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+        .filter-select { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; min-width: 220px; cursor: pointer; background-color: #fff; }
+        .export-btn { background: #27ae60; color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
         .export-btn:hover { background: #219150; }
 
         /* KPI Cards */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); text-align: right; border-right: 4px solid #000; }
-        .stat-title { color: #666; font-size: 13px; text-transform: uppercase; font-weight: 600; }
-        .stat-value { font-size: 32px; font-weight: 800; color: #000; margin-top: 5px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 35px; }
+        .stat-card { background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); text-align: right; border-right: 4px solid #000; }
+        .stat-title { color: #777; font-size: 13px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .stat-value { font-size: 36px; font-weight: 800; color: #000; margin-top: 8px; }
 
         /* Table */
-        .table-wrapper { background: #fff; border-radius: 8px; overflow-x: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+        .table-wrapper { background: #fff; border-radius: 12px; overflow-x: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border: 1px solid #eee; }
         table { width: 100%; border-collapse: collapse; min-width: 900px; }
         thead { background: #000; color: #fff; }
-        th { text-align: right; padding: 15px; font-size: 14px; font-weight: 500; }
-        td { padding: 15px; border-bottom: 1px solid #eee; font-size: 14px; color: #333; vertical-align: middle; }
-        tr:hover { background-color: #f9f9f9; }
+        th { text-align: right; padding: 18px; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; }
+        td { padding: 18px; border-bottom: 1px solid #eee; font-size: 14px; color: #333; vertical-align: middle; }
+        /* 1. תיקון ההבהוב: הוספת tbody כדי שהכותרת לא תושפע */
+        tbody tr:hover { background-color: #f9f9f9; }
 
-        .tag { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 4px; display: inline-block; }
-        .tag-role { background: #eee; color: #333; }
-        .tag-score { color: #fff; min-width: 35px; text-align: center; }
-        .score-high { background: #27ae60; }
-        .score-med { background: #f39c12; }
-        .score-low { background: #c0392b; }
+        .tag { font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 6px; display: inline-block; }
+        .tag-role { background: #f0f0f0; color: #555; border: 1px solid #e0e0e0; }
+        
+        /* 3. סקאלת ציונים חדשה (1-10) */
+        .tag-score { color: #fff; min-width: 40px; text-align: center; }
+        .score-excellent { background: #1e7e34; } /* 9-10 ירוק כהה */
+        .score-good { background: #28a745; }      /* 7-8 ירוק בהיר */
+        .score-average { background: #ffc107; color: #212529; } /* 5-6 צהוב */
+        .score-poor { background: #dc3545; }      /* 1-4 אדום */
 
         /* Modal */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 500; justify-content: center; align-items: center; }
-        .modal { background: #fff; width: 90%; max-width: 600px; padding: 30px; border-radius: 8px; max-height: 85vh; overflow-y: auto; text-align: right; position: relative; }
-        .modal-close { position: absolute; top: 15px; left: 15px; font-size: 24px; cursor: pointer; color: #999; }
-        .detail-row { margin-bottom: 15px; }
-        .detail-label { font-weight: 700; font-size: 13px; color: #555; display: block; margin-bottom: 4px; }
-        .detail-text { font-size: 15px; line-height: 1.5; color: #000; white-space: pre-wrap; background: #f9f9f9; padding: 10px; border-radius: 6px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .modal { background: #fff; width: 90%; max-width: 650px; padding: 35px; border-radius: 16px; max-height: 85vh; overflow-y: auto; text-align: right; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .modal-close { position: absolute; top: 20px; left: 20px; font-size: 28px; cursor: pointer; color: #aaa; transition: 0.2s; }
+        .modal-close:hover { color: #000; }
+        .detail-row { margin-bottom: 20px; }
+        .detail-label { font-weight: 800; font-size: 13px; color: #444; display: block; margin-bottom: 8px; text-transform: uppercase; }
+        .detail-text { font-size: 15px; line-height: 1.6; color: #000; white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
         
-        .action-btn { background: #000; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
-        .action-btn:hover { opacity: 0.8; }
+        .action-btn { background: #fff; color: #000; border: 1px solid #000; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; }
+        .action-btn:hover { background: #000; color: #fff; }
+
+        /* 5. פוטר קרדיט */
+        .footer-credit { text-align: center; padding: 20px; font-size: 11px; color: #999; margin-top: auto; border-top: 1px solid #eee; background: #fff; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen">
+    <div id="login-bg-container"></div>
+    <div id="login-overlay">
         <div class="login-box">
-            <h2 style="margin-top:0;">כניסת מנהלים</h2>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" alt="Adidas" class="login-logo">
+            <h2 style="margin-top:0; font-size: 22px;">כניסת מנהלים</h2>
             <div class="password-wrapper">
                 <input type="password" id="pass-input" placeholder="סיסמה">
-                <span class="toggle-password" onclick="togglePassword()">👁️</span>
+                <span class="toggle-password" onclick="togglePassword()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off" id="eye-icon"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.55 18.55 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </span>
             </div>
-            <button onclick="attemptLogin()">כניסה</button>
-            <p id="login-msg" style="color:red; font-size:13px; margin-top:10px;"></p>
+            <button onclick="attemptLogin()">כניסה למערכת</button>
+            <p id="login-msg" style="color:#dc3545; font-size:13px; margin-top:15px; font-weight:500; min-height:20px;"></p>
         </div>
     </div>
 
-    <div id="app-content" style="display:none;">
+    <div id="app-content">
         <div class="navbar">
-            <div class="logo">ADIDAS RECRUIT</div>
+            <div class="logo">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" alt="Adidas">
+                ADIDAS RECRUIT ADMIN
+            </div>
             <div class="nav-actions">
-                <div id="refresh-time" style="font-size:12px; color:#555;"></div>
-                <button class="refresh-btn" onclick="refreshData()">↻ רענן</button>
+                <div id="refresh-time" style="font-size:12px; color:#777; margin-left:10px;"></div>
+                <button class="nav-btn" onclick="refreshData()">
+                    <span>↻</span> רענן נתונים
+                </button>
+                <button class="nav-btn logout-btn" onclick="logout()">
+                    <span>➜</span> התנתק
+                </button>
             </div>
         </div>
 
         <div class="container">
             <div class="filter-bar">
-                <label style="font-weight:600;">סינון לפי סניף:</label>
-                <select id="branch-filter" class="filter-select" onchange="applyFilter()">
-                    <option value="all">כל הסניפים</option>
-                </select>
-                <button class="export-btn" onclick="exportToExcel()">⬇ הורד לאקסל</button>
+                <div style="display:flex; align-items:center; gap:10px; flex:1;">
+                    <label style="font-weight:700; font-size:14px;">סינון לפי סניף:</label>
+                    <select id="branch-filter" class="filter-select" onchange="applyFilter()">
+                        <option value="all">הצג את כל הסניפים</option>
+                    </select>
+                </div>
+                <button class="export-btn" onclick="exportToExcel()">
+                    <span>⬇</span> הורד קובץ Excel
+                </button>
             </div>
 
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-title">סה"כ מועמדים (בסינון)</div>
+                    <div class="stat-title">מועמדים ברשימה</div>
                     <div class="stat-value" id="val-total">0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-title">ציון ממוצע</div>
-                    <div class="stat-value" id="val-avg">0</div>
+                    <div class="stat-title">ציון התאמה ממוצע</div>
+                    <div class="stat-value" id="val-avg">0.0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-title">מועמדים חזקים (80+)</div>
-                    <div class="stat-value" id="val-top">0</div>
+                    <div class="stat-title" style="color: var(--accent);">מועמדים חזקים (ציון 8+)</div>
+                    <div class="stat-value" id="val-top" style="color: var(--accent);">0</div>
                 </div>
             </div>
 
-            <h2 style="margin-bottom:15px; font-size:18px;">רשימת מועמדים</h2>
+            <h2 style="margin-bottom:20px; font-size:20px; font-weight:800;">רשימת מועמדים אחרונים</h2>
             <div class="table-wrapper">
                 <table>
                     <thead>
@@ -142,37 +181,41 @@
                             <th>תאריך</th>
                             <th>שם מלא</th>
                             <th>תפקיד</th>
-                            <th>עיר</th>
+                            <th>עיר מגורים</th>
                             <th>סניף</th>
                             <th>טלפון</th>
-                            <th>ציון</th>
-                            <th>המלצה</th>
-                            <th>פעולות</th>
+                            <th style="text-align:center;">ציון</th>
+                            <th>המלצה / קו"ח</th>
+                            <th>פרטים</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
-                        <tr><td colspan="9" style="text-align:center; padding:20px;">טוען נתונים...</td></tr>
+                        <tr><td colspan="9" style="text-align:center; padding:30px; color:#777;">טוען נתונים...</td></tr>
                     </tbody>
                 </table>
             </div>
+        </div>
+
+        <div class="footer-credit">
+            © 2024 Adidas Recruitment System. Developed by Tamer Massarwi. All rights reserved.
         </div>
     </div>
 
     <div class="modal-overlay" id="modal-view">
         <div class="modal">
             <span class="modal-close" onclick="closeModal()">&times;</span>
-            <h2 id="m-name" style="margin-top:0;">פרטי מועמד</h2>
+            <h2 id="m-name" style="margin-top:0; font-size:24px; border-bottom:3px solid #000; padding-bottom:15px; margin-bottom:25px;">פרטי מועמד</h2>
             <div class="detail-row">
-                <span class="detail-label">סיכום AI כללי:</span>
+                <span class="detail-label">📌 סיכום AI כללי:</span>
                 <div id="m-general" class="detail-text"></div>
             </div>
             <div class="detail-row">
-                <span class="detail-label">חוזקות בולטות:</span>
-                <div id="m-strengths" class="detail-text" style="color:#155724; background:#d4edda;"></div>
+                <span class="detail-label" style="color:#1e7e34;">✅ חוזקות בולטות:</span>
+                <div id="m-strengths" class="detail-text" style="color:#155724; background:#d4edda; border-color:#c3e6cb;"></div>
             </div>
             <div class="detail-row">
-                <span class="detail-label">חולשות / נקודות לשיפור:</span>
-                <div id="m-weaknesses" class="detail-text" style="color:#721c24; background:#f8d7da;"></div>
+                <span class="detail-label" style="color:#dc3545;">⚠️ נקודות לשיפור / חולשות:</span>
+                <div id="m-weaknesses" class="detail-text" style="color:#721c24; background:#f8d7da; border-color:#f5c6cb;"></div>
             </div>
         </div>
     </div>
@@ -187,27 +230,49 @@
             if (e.key === 'Enter') attemptLogin();
         });
 
-        // 6. הצגת סיסמה
+        // 6. החלפת אייקון עין (SVG)
         function togglePassword() {
             const input = document.getElementById('pass-input');
-            const icon = document.querySelector('.toggle-password');
+            const iconContainer = document.getElementById('eye-icon').parentNode;
+            
             if (input.type === "password") {
                 input.type = "text";
-                icon.innerText = "🔒";
+                // אייקון עין פתוחה
+                iconContainer.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
             } else {
                 input.type = "password";
-                icon.innerText = "👁️";
+                 // אייקון עין סגורה
+                iconContainer.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.55 18.55 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
             }
         }
 
         async function attemptLogin() {
-            const pass = document.getElementById('pass-input').value;
+            const passInput = document.getElementById('pass-input');
+            const pass = passInput.value;
+            if (!pass) {
+                 document.getElementById('login-msg').innerText = "נא להזין סיסמה";
+                 return;
+            }
+            document.getElementById('login-msg').innerText = "מתחבר...";
             currentPass = pass;
             await fetchData();
         }
 
+        // 4. פונקציית התנתקות
+        function logout() {
+            currentPass = "";
+            fullData = [];
+            filteredData = [];
+            document.getElementById('pass-input').value = "";
+            document.getElementById('login-msg').innerText = "";
+            document.getElementById('app-content').style.display = 'none';
+            document.getElementById('login-bg-container').style.display = 'block';
+            document.getElementById('login-overlay').style.display = 'flex';
+        }
+
         async function refreshData() {
-            document.getElementById('table-body').innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px;">מרענן...</td></tr>';
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#777;"><span style="display:inline-block; animation: spin 1s linear infinite;">↻</span> מרענן נתונים...</td></tr>';
             await fetchData();
         }
 
@@ -215,40 +280,40 @@
             try {
                 const res = await fetch(`/api/admin/candidates?password=${currentPass}`);
                 if (res.status === 401) {
-                    document.getElementById('login-msg').innerText = "סיסמה שגויה";
+                    document.getElementById('login-msg').innerText = "סיסמה שגויה, נסה שוב.";
                     return;
                 }
+                if (!res.ok) throw new Error('Network response was not ok');
+                
                 const data = await res.json();
                 fullData = data;
                 
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('app-content').style.display = 'block';
-                
+                // הסתרת מסך כניסה והצגת האפליקציה
+                document.getElementById('login-bg-container').style.display = 'none';
+                document.getElementById('login-overlay').style.display = 'none';
+                document.getElementById('app-content').style.display = 'flex';
+                document.getElementById('app-content').style.flexDirection = 'column';
+
                 populateBranchFilter();
                 applyFilter();
             } catch (e) {
-                document.getElementById('login-msg').innerText = "שגיאת תקשורת";
+                document.getElementById('login-msg').innerText = "שגיאת תקשורת עם השרת.";
+                console.error("Fetch error:", e);
             }
         }
 
         function populateBranchFilter() {
             const select = document.getElementById('branch-filter');
             const currentVal = select.value;
-            select.innerHTML = '<option value="all">כל הסניפים</option>';
-            // סינון סניפים ייחודיים ומחיקת ריקים
+            select.innerHTML = '<option value="all">הצג את כל הסניפים</option>';
             const branches = [...new Set(fullData.map(item => item.branch))].filter(b => b && b.trim() !== "").sort();
-            
             branches.forEach(branch => {
                 const opt = document.createElement('option');
                 opt.value = branch;
                 opt.innerText = branch;
                 select.appendChild(opt);
             });
-            
-            // אם הסניף שנבחר קודם עדיין קיים, נשמור עליו
-            if (branches.includes(currentVal)) {
-                select.value = currentVal;
-            }
+            if (branches.includes(currentVal)) { select.value = currentVal; }
         }
 
         function applyFilter() {
@@ -261,13 +326,12 @@
             renderData(filteredData);
         }
 
-        // 2. הורדה לאקסל (מתוקן)
         function exportToExcel() {
             if (filteredData.length === 0) { alert("אין נתונים להורדה"); return; }
             let csvContent = "\uFEFF"; 
-            csvContent += "Date,Name,Role,Branch,City,Phone,Score,Recommendation\n";
+            csvContent += "תאריך,שם מלא,תפקיד,סניף,עיר מגורים,טלפון,ציון,המלצה/לינק\n";
             filteredData.forEach(row => {
-                const clean = (text) => (text || "").toString().replace(/,/g, " ");
+                const clean = (text) => (text || "").toString().replace(/,/g, " ").replace(/\n/g, " ");
                 let phone = clean(row.phone).replace(/'/g, "");
                 if (phone && !phone.startsWith('0') && phone.length > 8) phone = '0' + phone;
                 
@@ -277,88 +341,96 @@
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = "candidates_export.csv";
+            const date = new Date().toISOString().slice(0,10);
+            link.download = `Adidas_Candidates_${date}.csv`;
             link.click();
         }
 
         function renderData(data) {
-            // KPI Calc
             document.getElementById('val-total').innerText = data.length;
-            const validScores = data.filter(c => c.score && !isNaN(c.score));
-            const avg = validScores.length ? (validScores.reduce((acc, c) => acc + parseInt(c.score), 0) / validScores.length).toFixed(1) : 0;
+            const validScores = data.filter(c => c.score && !isNaN(c.score) && c.score > 0);
+            const avg = validScores.length ? (validScores.reduce((acc, c) => acc + parseInt(c.score), 0) / validScores.length).toFixed(1) : "0.0";
             document.getElementById('val-avg').innerText = avg;
-            const top = data.filter(c => (parseInt(c.score)||0) >= 80).length;
+            
+            // 2. תיקון KPI: ספירה של 8 ומעלה
+            const top = data.filter(c => (parseInt(c.score)||0) >= 8).length;
             document.getElementById('val-top').innerText = top;
-            document.getElementById('refresh-time').innerText = "עודכן: " + new Date().toLocaleTimeString();
+            
+            document.getElementById('refresh-time').innerText = "עודכן לאחרונה: " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
 
             if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;">אין נתונים להצגה</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#777;">לא נמצאו מועמדים התואמים לסינון.</td></tr>';
                 return;
             }
 
             data.forEach((item, index) => {
-                // === תיקון הקריסה: הגנה מפני שורות פגומות ===
                 try {
                     const score = parseInt(item.score) || 0;
-                    let scoreClass = 'score-low';
-                    if (score >= 80) scoreClass = 'score-high';
-                    else if (score >= 60) scoreClass = 'score-med';
+                    
+                    // 3. סקאלת צבעים חדשה (1-10)
+                    let scoreClass = 'score-poor'; // 1-4 (אדום)
+                    if (score >= 9) scoreClass = 'score-excellent'; // 9-10 (ירוק כהה)
+                    else if (score >= 7) scoreClass = 'score-good'; // 7-8 (ירוק בהיר)
+                    else if (score >= 5) scoreClass = 'score-average'; // 5-6 (צהוב)
 
                     let dateStr = item.date;
-                    try { dateStr = new Date(item.date).toLocaleDateString('he-IL'); } catch(e){}
+                    try { dateStr = new Date(item.date).toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit', year:'2-digit'}); } catch(e){}
 
                     const city = item.city || "-";
-                    const role = item.role || "-";
+                    const roleMap = { 'sales': 'מוכרן/צוות', 'shift_manager': 'אחמ"ש', 'store_manager': 'מנהל/סגן' };
+                    const role = roleMap[item.role] || item.role || "-";
                     
-                    // 3. תיקון מספר טלפון
                     let phone = (item.phone || "-").toString().replace("'", "");
-                    if (phone !== "-" && !phone.startsWith('0') && phone.length > 8) {
-                        phone = "0" + phone;
-                    }
+                    if (phone !== "-" && !phone.startsWith('0') && phone.length > 8) { phone = "0" + phone; }
 
-                    // 4. תיקון עמודת המלצה (אם זה לינק - מציג "קובץ")
                     let recDisplay = item.recommendation || "-";
                     if (recDisplay.toString().startsWith("http")) {
-                        recDisplay = `<a href="${recDisplay}" target="_blank" style="color:blue; text-decoration:underline;">📂 קובץ</a>`;
+                        recDisplay = `<a href="${recDisplay}" target="_blank" style="color:#007bff; text-decoration:none; font-weight:600;">📄 צפה בקובץ</a>`;
                     } else {
-                        if (recDisplay.length > 30) recDisplay = recDisplay.substring(0, 30) + "...";
+                        if (recDisplay.length > 25) recDisplay = recDisplay.substring(0, 25) + "...";
                     }
 
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${dateStr}</td>
-                        <td style="font-weight:600">${item.name || "ללא שם"}</td>
+                        <td style="font-weight:700">${item.name || "ללא שם"}</td>
                         <td><span class="tag tag-role">${role}</span></td>
                         <td>${city}</td>
                         <td>${item.branch || "-"}</td>
-                        <td style="direction:ltr; text-align:right;">${phone}</td>
-                        <td><span class="tag tag-score ${scoreClass}">${score}</span></td>
-                        <td style="font-size:12px; color:#555;">${recDisplay}</td>
-                        <td><button class="action-btn" onclick="openModal(${index})">צפה</button></td>
+                        <td style="direction:ltr; text-align:right; font-family:monospace;">${phone}</td>
+                        <td style="text-align:center;"><span class="tag tag-score ${scoreClass}">${score}</span></td>
+                        <td style="font-size:13px; color:#666;">${recDisplay}</td>
+                        <td><button class="action-btn" onclick="openModal(${index})">פרטים מלאים</button></td>
                     `;
                     tbody.appendChild(tr);
-                } catch (err) {
-                    console.error("Skipping bad row:", err);
-                }
+                } catch (err) { console.error("Skipping row:", err); }
             });
         }
 
         function openModal(index) {
             const item = filteredData[index];
             if (!item) return;
-            document.getElementById('m-name').innerText = item.name + " (ציון: " + (item.score || 0) + ")";
-            document.getElementById('m-general').innerText = item.general || "אין סיכום זמין";
+            
+            const score = parseInt(item.score) || 0;
+            document.getElementById('m-name').innerText = (item.name || "מועמד") + ` (ציון התאמה: ${score}/10)`;
+            document.getElementById('m-general').innerText = item.general || "לא התקבל סיכום ממערכת ה-AI.";
             document.getElementById('m-strengths').innerText = item.strengths || "-";
             document.getElementById('m-weaknesses').innerText = item.weaknesses || "-";
+            
             document.getElementById('modal-view').style.display = 'flex';
         }
 
         function closeModal() {
             document.getElementById('modal-view').style.display = 'none';
         }
+        
+        // אנימציה קלה לטעינה
+        const style = document.createElement('style');
+        style.innerHTML = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>
