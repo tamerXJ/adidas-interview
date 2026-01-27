@@ -7,7 +7,24 @@
     <style>
         :root { --brand-black: #000; --brand-white: #fff; --bg-gray: #f5f5f5; --accent: #2ecc71; }
         
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: var(--bg-gray); color: #333; cursor: default; }
+        /* 4. ביטול מוחלט של סמן מהבהב ובחירת טקסט */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            background-color: var(--bg-gray); 
+            color: #333; 
+            cursor: default; 
+            user-select: none; /* מונע סימון טקסט כחול */
+            -webkit-user-select: none;
+        }
+        
+        /* החזרת הסמן רק לשדות כתיבה */
+        input, textarea { 
+            cursor: text; 
+            user-select: text; 
+            -webkit-user-select: text;
+        }
+
         * { box-sizing: border-box; outline: none; }
         
         /* Login Screen */
@@ -15,7 +32,7 @@
         .login-box { background: #fff; padding: 40px; border-radius: 8px; text-align: center; width: 90%; max-width: 350px; position: relative; }
         
         .password-wrapper { position: relative; width: 100%; margin-top: 15px; }
-        .login-box input { width: 100%; padding: 12px; padding-left: 40px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; cursor: text; }
+        .login-box input { width: 100%; padding: 12px; padding-left: 40px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
         .toggle-password { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px; opacity: 0.6; }
         
         .login-box button { width: 100%; padding: 12px; margin-top: 15px; background: #000; color: #fff; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; transition: 0.2s; }
@@ -58,6 +75,7 @@
         .score-med { background: #f39c12; }
         .score-low { background: #c0392b; }
 
+        /* Modal */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 500; justify-content: center; align-items: center; }
         .modal { background: #fff; width: 90%; max-width: 600px; padding: 30px; border-radius: 8px; max-height: 85vh; overflow-y: auto; text-align: right; position: relative; }
         .modal-close { position: absolute; top: 15px; left: 15px; font-size: 24px; cursor: pointer; color: #999; }
@@ -164,10 +182,12 @@
         let filteredData = [];
         let currentPass = "";
 
+        // 5. כניסה עם ENTER
         document.getElementById('pass-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') attemptLogin();
         });
 
+        // 6. הצגת סיסמה
         function togglePassword() {
             const input = document.getElementById('pass-input');
             const icon = document.querySelector('.toggle-password');
@@ -215,14 +235,20 @@
             const select = document.getElementById('branch-filter');
             const currentVal = select.value;
             select.innerHTML = '<option value="all">כל הסניפים</option>';
-            const branches = [...new Set(fullData.map(item => item.branch))].filter(b => b).sort();
+            // סינון סניפים ייחודיים ומחיקת ריקים
+            const branches = [...new Set(fullData.map(item => item.branch))].filter(b => b && b.trim() !== "").sort();
+            
             branches.forEach(branch => {
                 const opt = document.createElement('option');
                 opt.value = branch;
                 opt.innerText = branch;
                 select.appendChild(opt);
             });
-            select.value = currentVal;
+            
+            // אם הסניף שנבחר קודם עדיין קיים, נשמור עליו
+            if (branches.includes(currentVal)) {
+                select.value = currentVal;
+            }
         }
 
         function applyFilter() {
@@ -235,15 +261,16 @@
             renderData(filteredData);
         }
 
+        // 2. הורדה לאקסל (מתוקן)
         function exportToExcel() {
             if (filteredData.length === 0) { alert("אין נתונים להורדה"); return; }
             let csvContent = "\uFEFF"; 
             csvContent += "Date,Name,Role,Branch,City,Phone,Score,Recommendation\n";
             filteredData.forEach(row => {
                 const clean = (text) => (text || "").toString().replace(/,/g, " ");
-                let phone = clean(row.phone);
-                // תיקון טלפון באקסל
+                let phone = clean(row.phone).replace(/'/g, "");
                 if (phone && !phone.startsWith('0') && phone.length > 8) phone = '0' + phone;
+                
                 let rowStr = `${clean(row.date)},${clean(row.name)},${clean(row.role)},${clean(row.branch)},${clean(row.city)},'${phone},${clean(row.score)},${clean(row.recommendation)}`;
                 csvContent += rowStr + "\n";
             });
@@ -255,6 +282,7 @@
         }
 
         function renderData(data) {
+            // KPI Calc
             document.getElementById('val-total').innerText = data.length;
             const validScores = data.filter(c => c.score && !isNaN(c.score));
             const avg = validScores.length ? (validScores.reduce((acc, c) => acc + parseInt(c.score), 0) / validScores.length).toFixed(1) : 0;
@@ -272,41 +300,49 @@
             }
 
             data.forEach((item, index) => {
-                const score = parseInt(item.score) || 0;
-                let scoreClass = 'score-low';
-                if (score >= 80) scoreClass = 'score-high';
-                else if (score >= 60) scoreClass = 'score-med';
+                // === תיקון הקריסה: הגנה מפני שורות פגומות ===
+                try {
+                    const score = parseInt(item.score) || 0;
+                    let scoreClass = 'score-low';
+                    if (score >= 80) scoreClass = 'score-high';
+                    else if (score >= 60) scoreClass = 'score-med';
 
-                let dateStr = item.date;
-                try { dateStr = new Date(item.date).toLocaleDateString('he-IL'); } catch(e){}
+                    let dateStr = item.date;
+                    try { dateStr = new Date(item.date).toLocaleDateString('he-IL'); } catch(e){}
 
-                const city = item.city || "-";
-                const role = item.role || "-";
-                let phone = item.phone || "-";
-                
-                // הסרת גרש אם קיים מהדאטהבייס
-                phone = phone.replace("'", "");
-                
-                if (phone !== "-" && !phone.startsWith('0') && phone.length > 8) {
-                    phone = "0" + phone;
+                    const city = item.city || "-";
+                    const role = item.role || "-";
+                    
+                    // 3. תיקון מספר טלפון
+                    let phone = (item.phone || "-").toString().replace("'", "");
+                    if (phone !== "-" && !phone.startsWith('0') && phone.length > 8) {
+                        phone = "0" + phone;
+                    }
+
+                    // 4. תיקון עמודת המלצה (אם זה לינק - מציג "קובץ")
+                    let recDisplay = item.recommendation || "-";
+                    if (recDisplay.toString().startsWith("http")) {
+                        recDisplay = `<a href="${recDisplay}" target="_blank" style="color:blue; text-decoration:underline;">📂 קובץ</a>`;
+                    } else {
+                        if (recDisplay.length > 30) recDisplay = recDisplay.substring(0, 30) + "...";
+                    }
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${dateStr}</td>
+                        <td style="font-weight:600">${item.name || "ללא שם"}</td>
+                        <td><span class="tag tag-role">${role}</span></td>
+                        <td>${city}</td>
+                        <td>${item.branch || "-"}</td>
+                        <td style="direction:ltr; text-align:right;">${phone}</td>
+                        <td><span class="tag tag-score ${scoreClass}">${score}</span></td>
+                        <td style="font-size:12px; color:#555;">${recDisplay}</td>
+                        <td><button class="action-btn" onclick="openModal(${index})">צפה</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                } catch (err) {
+                    console.error("Skipping bad row:", err);
                 }
-
-                let recShort = item.recommendation || "-";
-                if (recShort.length > 30) recShort = recShort.substring(0, 30) + "...";
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${dateStr}</td>
-                    <td style="font-weight:600">${item.name}</td>
-                    <td><span class="tag tag-role">${role}</span></td>
-                    <td>${city}</td>
-                    <td>${item.branch}</td>
-                    <td style="direction:ltr; text-align:right;">${phone}</td>
-                    <td><span class="tag tag-score ${scoreClass}">${score}</span></td>
-                    <td style="font-size:12px; color:#555;">${recShort}</td>
-                    <td><button class="action-btn" onclick="openModal(${index})">צפה</button></td>
-                `;
-                tbody.appendChild(tr);
             });
         }
 
