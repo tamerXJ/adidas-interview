@@ -44,7 +44,7 @@ app.get('/api/admin/candidates', async (req, res) => {
     }
 });
 
-// 2. עדכון סטטוס (ארכיון/שחזור) - חדש!
+// === הוספה: עדכון סטטוס (ארכיון/שחזור) ===
 app.post('/api/admin/update-status', async (req, res) => {
     const { password, phone, status } = req.body;
     
