@@ -7,7 +7,6 @@
     <style>
         :root { --brand-black: #000; --brand-white: #fff; --bg-gray: #f5f5f5; --accent: #2ecc71; }
         
-        /* 4. ביטול סמן מהבהב ועיצוב כללי */
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: var(--bg-gray); color: #333; cursor: default; }
         * { box-sizing: border-box; outline: none; }
         
@@ -15,7 +14,6 @@
         #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
         .login-box { background: #fff; padding: 40px; border-radius: 8px; text-align: center; width: 90%; max-width: 350px; position: relative; }
         
-        /* 6. עיצוב שדה סיסמה עם עין */
         .password-wrapper { position: relative; width: 100%; margin-top: 15px; }
         .login-box input { width: 100%; padding: 12px; padding-left: 40px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; cursor: text; }
         .toggle-password { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px; opacity: 0.6; }
@@ -29,13 +27,11 @@
         
         .nav-actions { display: flex; gap: 10px; align-items: center; }
         
-        /* 1. כפתור רענון */
         .refresh-btn { background: #f0f0f0; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 5px; }
         .refresh-btn:hover { background: #e0e0e0; }
 
         .container { padding: 40px; max-width: 1400px; margin: 0 auto; }
 
-        /* 2. אזור סינון והורדה */
         .filter-bar { background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
         .filter-select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; min-width: 200px; cursor: pointer; }
         .export-btn { background: #27ae60; color: #fff; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; }
@@ -62,7 +58,6 @@
         .score-med { background: #f39c12; }
         .score-low { background: #c0392b; }
 
-        /* Modal */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 500; justify-content: center; align-items: center; }
         .modal { background: #fff; width: 90%; max-width: 600px; padding: 30px; border-radius: 8px; max-height: 85vh; overflow-y: auto; text-align: right; position: relative; }
         .modal-close { position: absolute; top: 15px; left: 15px; font-size: 24px; cursor: pointer; color: #999; }
@@ -98,12 +93,11 @@
         </div>
 
         <div class="container">
-            
             <div class="filter-bar">
                 <label style="font-weight:600;">סינון לפי סניף:</label>
                 <select id="branch-filter" class="filter-select" onchange="applyFilter()">
                     <option value="all">כל הסניפים</option>
-                    </select>
+                </select>
                 <button class="export-btn" onclick="exportToExcel()">⬇ הורד לאקסל</button>
             </div>
 
@@ -150,17 +144,14 @@
         <div class="modal">
             <span class="modal-close" onclick="closeModal()">&times;</span>
             <h2 id="m-name" style="margin-top:0;">פרטי מועמד</h2>
-            
             <div class="detail-row">
                 <span class="detail-label">סיכום AI כללי:</span>
                 <div id="m-general" class="detail-text"></div>
             </div>
-            
             <div class="detail-row">
                 <span class="detail-label">חוזקות בולטות:</span>
                 <div id="m-strengths" class="detail-text" style="color:#155724; background:#d4edda;"></div>
             </div>
-            
             <div class="detail-row">
                 <span class="detail-label">חולשות / נקודות לשיפור:</span>
                 <div id="m-weaknesses" class="detail-text" style="color:#721c24; background:#f8d7da;"></div>
@@ -169,16 +160,14 @@
     </div>
 
     <script>
-        let fullData = []; // כל הנתונים
-        let filteredData = []; // נתונים אחרי סינון
+        let fullData = [];
+        let filteredData = [];
         let currentPass = "";
 
-        // 5. כניסה עם ENTER
         document.getElementById('pass-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') attemptLogin();
         });
 
-        // 6. הצגת סיסמה
         function togglePassword() {
             const input = document.getElementById('pass-input');
             const icon = document.querySelector('.toggle-password');
@@ -197,7 +186,6 @@
             await fetchData();
         }
 
-        // 1. כפתור רענון
         async function refreshData() {
             document.getElementById('table-body').innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px;">מרענן...</td></tr>';
             await fetchData();
@@ -217,7 +205,7 @@
                 document.getElementById('app-content').style.display = 'block';
                 
                 populateBranchFilter();
-                applyFilter(); // מפעיל סינון (בהתחלה הכל) ומרנדר
+                applyFilter();
             } catch (e) {
                 document.getElementById('login-msg').innerText = "שגיאת תקשורת";
             }
@@ -226,54 +214,38 @@
         function populateBranchFilter() {
             const select = document.getElementById('branch-filter');
             const currentVal = select.value;
-            // שמירת אופציית "הכל"
             select.innerHTML = '<option value="all">כל הסניפים</option>';
-            
-            // איסוף סניפים ייחודיים
             const branches = [...new Set(fullData.map(item => item.branch))].filter(b => b).sort();
-            
             branches.forEach(branch => {
                 const opt = document.createElement('option');
                 opt.value = branch;
                 opt.innerText = branch;
                 select.appendChild(opt);
             });
-            select.value = currentVal; // שחזור בחירה אם הייתה
+            select.value = currentVal;
         }
 
-        // 2. סינון לפי סניף
         function applyFilter() {
             const selectedBranch = document.getElementById('branch-filter').value;
-            
             if (selectedBranch === 'all') {
                 filteredData = fullData;
             } else {
                 filteredData = fullData.filter(item => item.branch === selectedBranch);
             }
-            
             renderData(filteredData);
         }
 
-        // 2. הורדה לאקסל (לפי הסינון הנוכחי)
         function exportToExcel() {
             if (filteredData.length === 0) { alert("אין נתונים להורדה"); return; }
-            
-            let csvContent = "\uFEFF"; // BOM לעברית תקינה
-            // כותרות
+            let csvContent = "\uFEFF"; 
             csvContent += "Date,Name,Role,Branch,City,Phone,Score,Recommendation\n";
-            
             filteredData.forEach(row => {
-                // ניקוי פסיקים כדי לא לשבור את ה-CSV
                 const clean = (text) => (text || "").toString().replace(/,/g, " ");
-                
-                // 3. תיקון אפס בטלפון גם באקסל
                 let phone = clean(row.phone);
                 if (phone && !phone.startsWith('0') && phone.length > 8) phone = '0' + phone;
-
                 let rowStr = `${clean(row.date)},${clean(row.name)},${clean(row.role)},${clean(row.branch)},${clean(row.city)},'${phone},${clean(row.score)},${clean(row.recommendation)}`;
                 csvContent += rowStr + "\n";
             });
-
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
@@ -282,19 +254,14 @@
         }
 
         function renderData(data) {
-            // KPI Calc
             document.getElementById('val-total').innerText = data.length;
-            
             const validScores = data.filter(c => c.score && !isNaN(c.score));
             const avg = validScores.length ? (validScores.reduce((acc, c) => acc + parseInt(c.score), 0) / validScores.length).toFixed(1) : 0;
             document.getElementById('val-avg').innerText = avg;
-            
             const top = data.filter(c => (parseInt(c.score)||0) >= 80).length;
             document.getElementById('val-top').innerText = top;
-            
             document.getElementById('refresh-time').innerText = "עודכן: " + new Date().toLocaleTimeString();
 
-            // Table Construction
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
 
@@ -314,10 +281,7 @@
 
                 const city = item.city || "-";
                 const role = item.role || "-";
-                
-                // 3. תיקון מספר טלפון בתצוגה
                 let phone = item.phone || "-";
-                // אם המספר לא מתחיל ב-0 והוא נראה כמו מספר נייד, נוסיף 0
                 if (phone !== "-" && !phone.startsWith('0') && phone.length > 8) {
                     phone = "0" + phone;
                 }
@@ -342,15 +306,12 @@
         }
 
         function openModal(index) {
-            // שים לב: אנחנו מושכים מה-filteredData כדי שהאינדקס יתאים למה שרואים במסך
             const item = filteredData[index];
             if (!item) return;
-
             document.getElementById('m-name').innerText = item.name + " (ציון: " + (item.score || 0) + ")";
             document.getElementById('m-general').innerText = item.general || "אין סיכום זמין";
             document.getElementById('m-strengths').innerText = item.strengths || "-";
             document.getElementById('m-weaknesses').innerText = item.weaknesses || "-";
-            
             document.getElementById('modal-view').style.display = 'flex';
         }
 

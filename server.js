@@ -6,25 +6,26 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123"; // סיסמה לאדמין
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123"; // תוספת לאדמין
 
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
 app.use(express.json({ limit: '10mb' })); 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// === 1. נתיבים ===
+// === נתיבים ===
 
+// 1. דף הבית
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// נתיב לאדמין
+// 2. דף אדמין (חדש - לא משפיע על הראיון)
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-// API למשיכת נתונים לטבלת הניהול
+// 3. API לאדמין (חדש - מושך נתונים מהשיטס)
 app.get('/api/admin/candidates', async (req, res) => {
     const { password } = req.query;
     if (password !== ADMIN_PASSWORD) {
@@ -33,14 +34,30 @@ app.get('/api/admin/candidates', async (req, res) => {
     try {
         const response = await fetch(GOOGLE_SHEET_URL);
         const data = await response.json();
-        res.json(data.reverse()); // מציג מהחדש לישן
+        res.json(data.reverse());
     } catch (error) {
         console.error("Sheet Error:", error);
         res.status(500).json({ error: "תקלה בטעינת נתונים" });
     }
 });
 
-// === מכאן והלאה הקוד היציב שלך לראיונות (לא נגעתי) ===
+// === פונקציות עזר מקוריות (לא שונו) ===
+
+async function findWorkingModel() {
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.models) {
+            const preferred = data.models.find(m => m.name.includes('gemini-1.5-flash')) || 
+                              data.models.find(m => m.name.includes('gemini-pro'));
+            if (preferred) {
+                ACTIVE_MODEL = preferred.name.replace("models/", "");
+                console.log(`✅ Model set to: ${ACTIVE_MODEL}`);
+            }
+        }
+    } catch (error) { console.error("Model check failed", error); }
+}
 
 function cleanJSON(text) {
     text = text.replace(/```json/g, "").replace(/```/g, "");
@@ -90,6 +107,7 @@ app.get('/api/get-questions', (req, res) => {
     res.json(ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"]); 
 });
 
+// === פונקציית שליחת הראיון המקורית (בלי שינויים בלוגיקה) ===
 app.post('/api/submit-interview', async (req, res) => {
     const { candidate, answers } = req.body;
     const role = candidate.role || "sales";
@@ -98,12 +116,13 @@ app.post('/api/submit-interview', async (req, res) => {
 
     let analysis = { 
         score: 0, 
-        general: "ממתין לניתוח (תקלת AI)", 
+        general: "ממתין לניתוח (תקלה טכנית)", 
         strengths: "-", 
         weaknesses: "-", 
         recommendation: "לבדיקה" 
     };
 
+    // 1. ניסיון AI רגיל (כמו בגרסה היציבה)
     try {
         let answersText = "";
         const currentQuestions = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
@@ -132,6 +151,7 @@ app.post('/api/submit-interview', async (req, res) => {
             const aiData = await aiResponse.json();
             const text = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
             const parsed = JSON.parse(cleanJSON(text));
+            
             analysis = {
                 score: parseInt(parsed.score) || 0,
                 general: parsed.general || analysis.general,
@@ -148,7 +168,7 @@ app.post('/api/submit-interview', async (req, res) => {
         console.error("⚠️ AI Logic Failed:", e.message);
     }
 
-    // שמירה לשיטס (חובה)
+    // 2. שמירה לשיטס (חובה)
     try {
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
             await fetch(GOOGLE_SHEET_URL, {
@@ -167,4 +187,5 @@ app.post('/api/submit-interview', async (req, res) => {
 
 app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
+    await findWorkingModel(); // הפעלה חד פעמית בהתחלה
 });
