@@ -91,6 +91,7 @@
         .action-btn { background: #fff; color: #000; border: 1px solid #000; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; text-align: center; display: inline-block; }
         .action-btn:hover { background: #000; color: #fff; }
 
+        /* הסתרת עמודות במובייל - הנתונים יוצגו במודל */
         @media (max-width: 768px) {
             th:nth-child(1), td:nth-child(1), /* תאריך */
             th:nth-child(4), td:nth-child(4), /* עיר */
@@ -135,22 +136,32 @@
 
         .modal-header {
             padding: 20px; border-bottom: 1px solid #eee; flex-shrink: 0; background: #fff; border-radius: 16px 16px 0 0;
-            display: flex; flex-direction: column; gap: 10px;
+            display: flex; flex-direction: column; gap: 8px;
         }
         .modal-top-row { display: flex; justify-content: space-between; align-items: center; }
+
+        /* גריד מידע חדש (תיקון למובייל) */
+        .meta-grid { 
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; margin-bottom: 5px; 
+        }
+        .meta-item { 
+            background: #f8f9fa; padding: 8px; border-radius: 8px; font-size: 13px; color: #444; 
+            display: flex; align-items: center; gap: 8px; border: 1px solid #eee; font-weight: 500;
+        }
+        .meta-icon { opacity: 0.7; font-size: 14px; }
 
         .modal-body {
             padding: 20px;
             overflow-y: auto; 
             -webkit-overflow-scrolling: touch; 
-            overscroll-behavior: contain; /* זה התיקון לגלילה! */
+            overscroll-behavior: contain; 
             background: #f9f9f9; flex: 1;
             border-radius: 0 0 12px 12px;
         }
 
         .modal-close { font-size: 30px; cursor: pointer; color: #aaa; line-height: 0.8; padding: 5px; }
         
-        .modal-tabs { display: flex; gap: 8px; background: #eee; padding: 4px; border-radius: 8px; }
+        .modal-tabs { display: flex; gap: 8px; background: #eee; padding: 4px; border-radius: 8px; margin-top: 10px; }
         .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; cursor: pointer; font-weight: 600; font-size: 13px; border-radius: 6px; color: #666; transition: 0.2s; }
         .tab-btn.active { background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); color: #000; font-weight: 800; }
         .tab-content { display: none; }
@@ -272,11 +283,13 @@
                     <span class="modal-close" onclick="closeModal()">&times;</span>
                 </div>
                 
+                <div id="m-meta-grid" class="meta-grid"></div>
+
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
                     <div id="modal-actions"></div>
                 </div>
 
-                <div class="modal-tabs" style="margin-top:10px;">
+                <div class="modal-tabs">
                     <button class="tab-btn active" onclick="switchTab('summary')" id="tab-btn-summary">📊 סיכום AI</button>
                     <button class="tab-btn" onclick="switchTab('transcript')" id="tab-btn-transcript">📝 ראיון מלא</button>
                 </div>
@@ -310,7 +323,7 @@
         let filteredData = [];
         let currentPass = "";
         let isArchiveMode = false; 
-        let scrollPosition = 0; // לשמירת מיקום הגלילה
+        let scrollPosition = 0; 
 
         document.getElementById('pass-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') attemptLogin();
@@ -387,7 +400,6 @@
                 document.getElementById('login-bg-container').style.display = 'none';
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('app-content').style.display = 'flex';
-                // Reset scroll lock if stuck
                 document.body.classList.remove('modal-open');
                 document.body.style.position = '';
                 populateBranchFilter(); applyFilter();
@@ -395,7 +407,7 @@
         }
 
         async function updateStatus(phone, newStatus) {
-            closeModal(); // סגירת המודל אם פתוח
+            closeModal(); 
             if (!confirm(newStatus === 'archived' ? "להעביר לארכיון?" : "לשחזר לרשימה הפעילה?")) return;
             try {
                 const item = fullData.find(i => (i.phone || "").replace("'","") == phone);
@@ -514,7 +526,6 @@
             document.getElementById(`tab-content-${tabName}`).classList.add('active');
         }
 
-        // === פונקציה סופית לניקוי יסודי של הראיון ===
         function formatInterviewText(text) {
             if (!text || text.includes("לא נמצא")) return '<div style="color:#999; text-align:center; padding:20px;">לא נשמר תוכן לראיון זה.</div>';
             
@@ -531,7 +542,6 @@
                 let metaDataHtml = "";
                 let stats = [];
 
-                // 1. חילוץ חכם: מחפש את המספרים עצמם, לא משנה איך הם עטופים
                 let timeMatch = rest.match(/Time Taken=(\d+)s?/i);
                 let switchMatch = rest.match(/Tab Switches=(\d+)/i);
 
@@ -542,19 +552,11 @@
                     metaDataHtml = `<div class="interview-meta"><span class="meta-badge">${stats.join(' | ')}</span></div>`;
                 }
 
-                // 2. ניקוי אגרסיבי: מוחק כל בלוק שנראה כמו מטא-דאטה
-                answerText = answerText.replace(/\[.*?Time Taken.*?\]/gi, ""); // מוחק סוגריים עם זמן
-                answerText = answerText.replace(/\[.*?METADAT.*?\]/gi, "");   // מוחק סוגריים עם METADATA
-                
-                // 3. מחיקת "שאריות" - מילים בודדות שנותרו (התיקון שביקשת)
-                // מוחק: [METADAT], METADAT], [METADAT, METADATA וכו'
+                answerText = answerText.replace(/\[.*?Time Taken.*?\]/gi, "");
+                answerText = answerText.replace(/\[.*?METADAT.*?\]/gi, "");
                 answerText = answerText.replace(/\[?METADAT[A]?\]?/gi, "");
-                
-                // 4. מחיקת נתונים טכניים אם נשארו בלי סוגריים
                 answerText = answerText.replace(/Time Taken=\d+s?/gi, "");
                 answerText = answerText.replace(/Tab Switches=\d+/gi, "");
-                
-                // ניקוי רווחים מיותרים
                 answerText = answerText.trim();
 
                 html += `
@@ -572,7 +574,6 @@
             const item = filteredData[index];
             if (!item) return;
             
-            // 1. נעילת גלילה חכמה (למניעת קפיצה)
             scrollPosition = window.scrollY;
             document.body.style.position = 'fixed';
             document.body.style.top = `-${scrollPosition}px`;
@@ -581,12 +582,27 @@
 
             const score = parseInt(item.score) || 0;
             document.getElementById('m-name').innerText = (item.name || "מועמד") + ` (ציון התאמה: ${score}/10)`;
+
+            // === הוספת הפרטים החסרים למודל (מיוחד למובייל) ===
+            let recLink = item.recommendation;
+            let recDisplay = (recLink && recLink.startsWith('http')) ? `<a href="${recLink}" target="_blank" style="color:#007bff; text-decoration:none;">📄 צפייה בקו"ח</a>` : 'אין קו"ח';
+            
+            let dateDisplay = '-';
+            try { dateDisplay = new Date(item.date).toLocaleDateString('he-IL'); } catch(e){}
+
+            document.getElementById('m-meta-grid').innerHTML = `
+                <div class="meta-item"><span class="meta-icon">📅</span> ${dateDisplay}</div>
+                <div class="meta-item"><span class="meta-icon">🏢</span> ${item.branch || '-'}</div>
+                <div class="meta-item"><span class="meta-icon">📍</span> ${item.city || '-'}</div>
+                <div class="meta-item"><span class="meta-icon">📎</span> ${recDisplay}</div>
+            `;
+            // =================================================
+
             document.getElementById('m-general').innerHTML = item.general || "לא התקבל סיכום ממערכת ה-AI.";
             document.getElementById('m-strengths').innerHTML = item.strengths || "-";
             document.getElementById('m-weaknesses').innerHTML = item.weaknesses || "-";
             document.getElementById('m-full-interview').innerHTML = formatInterviewText(item.fullInterview);
 
-            // הזרקת כפתור ארכיון לתוך המודל
             let phoneStr = (item.phone || "").toString().replace(/'/g,"");
             let actionBtn = '';
             if (isArchiveMode) {
@@ -602,7 +618,6 @@
 
         function closeModal() {
             document.getElementById('modal-view').style.display = 'none';
-            // 2. שחרור נעילת גלילה ושחזור מיקום
             document.body.classList.remove('modal-open');
             document.body.style.position = '';
             document.body.style.top = '';
