@@ -514,35 +514,48 @@
             document.getElementById(`tab-content-${tabName}`).classList.add('active');
         }
 
+        // === פונקציה סופית לניקוי יסודי של הראיון ===
         function formatInterviewText(text) {
             if (!text || text.includes("לא נמצא")) return '<div style="color:#999; text-align:center; padding:20px;">לא נשמר תוכן לראיון זה.</div>';
             
-            // מחיקה אגרסיבית של תגיות שגויות
-            text = text.replace(/\[METADAT\]/gi, "").replace(/\[METADATA\]/gi, "").trim();
-
             let parts = text.split(/Question:|Q:/g);
             let html = "";
 
             parts.forEach(part => {
                 if (!part.trim()) return;
+                
                 let [qText, rest] = part.split(/Answer:|A:/);
                 if (!rest) return;
 
                 let answerText = rest;
                 let metaDataHtml = "";
+                let stats = [];
 
-                // חילוץ חכם של מטא-דאטה אמיתי בלבד
-                const metaRegex = /\[(METADATA:|Time=)(.*?)\]/i;
-                let match = metaRegex.exec(rest);
+                // 1. חילוץ חכם: מחפש את המספרים עצמם, לא משנה איך הם עטופים
+                let timeMatch = rest.match(/Time Taken=(\d+)s?/i);
+                let switchMatch = rest.match(/Tab Switches=(\d+)/i);
 
-                if (match) {
-                    answerText = answerText.replace(match[0], "").trim();
-                    let rawMeta = match[2].replace('Time Taken=', '⏱ ').replace('s', ' שנ\'').replace('Tab Switches=', ' | ⚠️ יציאות מהחלון: ');
-                    metaDataHtml = `<div class="interview-meta"><span class="meta-badge">${rawMeta}</span></div>`;
+                if (timeMatch) stats.push(`⏱ ${timeMatch[1]} שנ'`);
+                if (switchMatch) stats.push(`⚠️ יציאות: ${switchMatch[1]}`);
+
+                if (stats.length > 0) {
+                    metaDataHtml = `<div class="interview-meta"><span class="meta-badge">${stats.join(' | ')}</span></div>`;
                 }
+
+                // 2. ניקוי אגרסיבי: מוחק כל בלוק שנראה כמו מטא-דאטה
+                answerText = answerText.replace(/\[.*?Time Taken.*?\]/gi, ""); // מוחק סוגריים עם זמן
+                answerText = answerText.replace(/\[.*?METADAT.*?\]/gi, "");   // מוחק סוגריים עם METADATA
                 
-                // ניקוי סופי נוסף
-                answerText = answerText.replace(/\[METADAT\]/gi, "").trim();
+                // 3. מחיקת "שאריות" - מילים בודדות שנותרו (התיקון שביקשת)
+                // מוחק: [METADAT], METADAT], [METADAT, METADATA וכו'
+                answerText = answerText.replace(/\[?METADAT[A]?\]?/gi, "");
+                
+                // 4. מחיקת נתונים טכניים אם נשארו בלי סוגריים
+                answerText = answerText.replace(/Time Taken=\d+s?/gi, "");
+                answerText = answerText.replace(/Tab Switches=\d+/gi, "");
+                
+                // ניקוי רווחים מיותרים
+                answerText = answerText.trim();
 
                 html += `
                     <div class="interview-qa">
