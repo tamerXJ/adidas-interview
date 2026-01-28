@@ -601,12 +601,13 @@
             document.getElementById(`tab-content-${tabName}`).classList.add('active');
         }
 
-        // === פונקציה לניקוי METADATA מתקדם ===
+        // === פונקציה משופרת לניקוי METADATA ===
         function formatInterviewText(text) {
             if (!text || text.includes("לא נמצא")) return '<div style="color:#999; text-align:center; padding:20px;">לא נשמר תוכן לראיון זה.</div>';
             
-            // 1. הסרת התג המלוכלך [METADATA] אם הוא מופיע לבד
-            text = text.replace(/\[METADATA\]/g, "");
+            // 1. ניקוי אגרסיבי של שאריות תגים לפני העיבוד
+            // מוחק [METADATA], [METADAT], ורווחים מיותרים
+            text = text.replace(/\[METADATA\]/gi, "").replace(/\[METADAT\]/gi, "");
 
             // 2. פירוק לפי שאלות
             let parts = text.split(/Question:|Q:/g);
@@ -622,9 +623,9 @@
                 let answerText = rest;
                 let metaDataHtml = "";
 
-                // חילוץ המטא-דאטה עם Regex חכם יותר
-                // מחפש תבנית [METADATA: ... ] או [Time=...]
-                const metaRegex = /\[(METADATA:|Time=)(.*?)\]/g;
+                // חילוץ המטא-דאטה האמיתי (עם המספרים)
+                // מחפש תבנית שמתחילה ב-[ ומכילה Time או METADATA
+                const metaRegex = /\[(METADATA:|Time=)(.*?)\]/i;
                 let match = metaRegex.exec(rest);
 
                 if (match) {
@@ -633,24 +634,27 @@
                     
                     let rawMeta = match[2]; // מה שבתוך הסוגריים
                     
-                    // ניקוי והחלפה לאייקונים
+                    // המרה לאייקונים יפים
                     rawMeta = rawMeta.replace('Time Taken=', '⏱ ').replace('s', ' שנ\'');
                     rawMeta = rawMeta.replace('Tab Switches=', ' | ⚠️ יציאות מהחלון: ');
                     
                     metaDataHtml = `<div class="interview-meta"><span class="meta-badge">${rawMeta}</span></div>`;
                 }
 
+                // ניקוי סופי של התשובה משאריות נוספות שאולי פספסנו
+                answerText = answerText.replace(/\[METADATA\]/gi, "").replace(/\[METADAT\]/gi, "").trim();
+
                 html += `
                     <div class="interview-qa">
                         <span class="interview-q">ש: ${qText.trim()}</span>
-                        <span class="interview-a">${answerText.trim()}</span>
+                        <span class="interview-a">${answerText}</span>
                         ${metaDataHtml}
                     </div>
                 `;
             });
             return html;
         }
-
+        
         function openModal(index) {
             const item = filteredData[index];
             if (!item) return;
