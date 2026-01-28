@@ -20,7 +20,6 @@
             flex-direction: column;
         }
 
-        /* מונע גלילה של הרקע כשהמודל פתוח */
         body.modal-open { overflow: hidden; position: fixed; width: 100%; height: 100%; }
 
         #login-bg-container {
@@ -88,16 +87,29 @@
         td { padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 13px; color: #333; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         tbody tr:hover { background-color: #f9f9f9; }
 
+        /* עיצוב כפתורים בטבלה */
         .action-btn { background: #fff; color: #000; border: 1px solid #000; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; text-align: center; display: inline-block; }
         .action-btn:hover { background: #000; color: #fff; }
 
-        /* הסתרת עמודות במובייל - הנתונים יוצגו במודל */
+        /* מחלקות ייעודיות לכפתורי שחזור וארכיון בטבלה (דסקטופ) */
+        .desktop-action { margin-right: 5px; }
+        .btn-arch { color: #a76d05; border-color: #a76d05; }
+        .btn-arch:hover { background: #a76d05; color: #fff; }
+        .btn-rest { color: #1e7e34; border-color: #1e7e34; }
+        .btn-rest:hover { background: #1e7e34; color: #fff; }
+
+        /* === התאמות למובייל === */
         @media (max-width: 768px) {
+            /* הסתרת עמודות בטלפון */
             th:nth-child(1), td:nth-child(1), /* תאריך */
             th:nth-child(4), td:nth-child(4), /* עיר */
             th:nth-child(5), td:nth-child(5), /* סניף */
             th:nth-child(8), td:nth-child(8)  /* המלצה */
             { display: none; }
+            
+            /* הסתרת כפתור ארכיון בטבלה בטלפון (יופיע רק במודל) */
+            .desktop-action { display: none; }
+            
             th, td { padding: 10px 4px; font-size: 12px; }
         }
 
@@ -109,18 +121,12 @@
         .score-average { background: #ffc107; color: #212529; } 
         .score-poor { background: #dc3545; }      
 
-        /* === מודל (Popup) משופר === */
+        /* === מודל (Popup) === */
         .modal-overlay { 
-            display: none; 
-            position: fixed; 
-            top: 0; left: 0; right: 0; bottom: 0;
-            width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.8); 
-            z-index: 9999; 
-            justify-content: center; 
-            align-items: flex-end; /* במובייל עולה מלמטה */
-            backdrop-filter: blur(4px);
-            overflow: hidden; 
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.8); 
+            z-index: 9999; justify-content: center; align-items: flex-end; 
+            backdrop-filter: blur(4px); overflow: hidden; 
         }
         @media (min-width: 769px) { .modal-overlay { align-items: center; } }
 
@@ -140,7 +146,6 @@
         }
         .modal-top-row { display: flex; justify-content: space-between; align-items: center; }
 
-        /* גריד מידע חדש (תיקון למובייל) */
         .meta-grid { 
             display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; margin-bottom: 5px; 
         }
@@ -151,11 +156,8 @@
         .meta-icon { opacity: 0.7; font-size: 14px; }
 
         .modal-body {
-            padding: 20px;
-            overflow-y: auto; 
-            -webkit-overflow-scrolling: touch; 
-            overscroll-behavior: contain; 
-            background: #f9f9f9; flex: 1;
+            padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; 
+            overscroll-behavior: contain; background: #f9f9f9; flex: 1;
             border-radius: 0 0 12px 12px;
         }
 
@@ -169,10 +171,14 @@
 
         /* כפתורי ארכיון במודל */
         .modal-actions-btn { font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; display: flex; align-items: center; gap: 5px; }
-        .btn-arch { color: #a76d05; border-color: #a76d05; }
-        .btn-arch:hover { background: #a76d05; color: #fff; }
-        .btn-rest { color: #1e7e34; border-color: #1e7e34; }
-        .btn-rest:hover { background: #1e7e34; color: #fff; }
+
+        /* ריווח כותרות במודל - תיקון למחשב */
+        .detail-row { margin-bottom: 20px; }
+        .detail-label { 
+            font-weight: 800; font-size: 13px; color: #444; display: block; 
+            margin-bottom: 12px; /* הוספת מרווח אסתטי מהבוקס */
+            text-transform: uppercase; 
+        }
 
         .detail-text { font-size: 15px; line-height: 1.5; color: #333; white-space: pre-wrap; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #eee; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
         .interview-qa { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
@@ -260,7 +266,7 @@
                             <th>טלפון</th>
                             <th style="text-align:center;">ציון</th>
                             <th>המלצה</th>
-                            <th>פרטים</th>
+                            <th>פעולות</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
@@ -500,6 +506,14 @@
                         if (recDisplay.length > 10) recDisplay = recDisplay.substring(0, 10) + "...";
                     }
 
+                    // בניית כפתור ארכיון לטבלה (דסקטופ בלבד)
+                    let archiveBtnTable = '';
+                    if (isArchiveMode) {
+                        archiveBtnTable = `<button class="action-btn desktop-action btn-rest" onclick="updateStatus('${phoneStr}', 'active')">♻️ שחזר</button>`;
+                    } else {
+                        archiveBtnTable = `<button class="action-btn desktop-action btn-arch" onclick="updateStatus('${phoneStr}', 'archived')">📥 ארכיון</button>`;
+                    }
+
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${dateStr}</td>
@@ -512,6 +526,7 @@
                         <td style="font-size:13px; color:#666;">${recDisplay}</td>
                         <td>
                             <button class="action-btn" onclick="openModal(${index})"><span class="action-icon">🔎</span> פרטים</button>
+                            ${archiveBtnTable}
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -583,7 +598,6 @@
             const score = parseInt(item.score) || 0;
             document.getElementById('m-name').innerText = (item.name || "מועמד") + ` (ציון התאמה: ${score}/10)`;
 
-            // === הוספת הפרטים החסרים למודל (מיוחד למובייל) ===
             let recLink = item.recommendation;
             let recDisplay = (recLink && recLink.startsWith('http')) ? `<a href="${recLink}" target="_blank" style="color:#007bff; text-decoration:none;">📄 צפייה בקו"ח</a>` : 'אין קו"ח';
             
@@ -596,7 +610,6 @@
                 <div class="meta-item"><span class="meta-icon">📍</span> ${item.city || '-'}</div>
                 <div class="meta-item"><span class="meta-icon">📎</span> ${recDisplay}</div>
             `;
-            // =================================================
 
             document.getElementById('m-general').innerHTML = item.general || "לא התקבל סיכום ממערכת ה-AI.";
             document.getElementById('m-strengths').innerHTML = item.strengths || "-";
