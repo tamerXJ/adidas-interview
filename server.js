@@ -179,11 +179,17 @@ app.post('/api/submit-interview', async (req, res) => {
         }
         `;
 
+        // === זה הקוד המתוקן (העתק והדבק במקום ה-fetch הישן) ===
         const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
+            body: JSON.stringify({ 
+                contents: [{ parts: [{ text: promptText }] }],
+                // השורה הזו היא הקסם שמונע קריסות:
+                generationConfig: { response_mime_type: "application/json" } 
+            })
         });
+        // ==========================================================
 
         if (!aiResponse.ok) { throw new Error(`API Error: ${aiResponse.status}`); }
 

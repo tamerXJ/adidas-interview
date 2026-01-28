@@ -20,13 +20,8 @@
             flex-direction: column;
         }
 
-        /* === תיקון גלילה קריטי למובייל === */
-        body.modal-open {
-            overflow: hidden;
-            position: fixed; /* נועל את המסך לחלוטין */
-            width: 100%;
-            height: 100%;
-        }
+        /* מונע גלילה של הרקע כשהמודל פתוח */
+        body.modal-open { overflow: hidden; position: fixed; width: 100%; height: 100%; }
 
         #login-bg-container {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 998;
@@ -64,10 +59,9 @@
         .nav-actions { display: flex; gap: 8px; align-items: center; }
         .nav-btn { background: #f4f4f4; border: 1px solid #eee; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; display: flex; align-items: center; gap: 4px; transition: 0.2s; color: #333; }
         
-        /* הסתרת טקסט כפתורים במובייל לחיסכון במקום */
         @media (max-width: 600px) {
             .btn-text { display: none; } 
-            .logo span { display: none; } /* הסתרת שם הלוגו במובייל */
+            .logo span { display: none; } 
             .logo img { width: 45px; }
             .container { padding: 15px !important; }
         }
@@ -86,45 +80,28 @@
         .stat-title { color: #777; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
         .stat-value { font-size: 24px; font-weight: 800; color: #000; margin-top: 5px; }
 
-        /* === טבלה רספונסיבית === */
+        /* === טבלה === */
         .table-wrapper { background: #fff; border-radius: 12px; overflow-x: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border: 1px solid #eee; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; min-width: 100%; }
         thead { background: #000; color: #fff; }
         th { text-align: right; padding: 12px 8px; font-size: 13px; font-weight: 600; white-space: nowrap; }
         td { padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 13px; color: #333; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
         tbody tr:hover { background-color: #f9f9f9; }
 
-        /* כפתורי פעולה בטבלה */
-        .actions-cell { display: flex; gap: 5px; justify-content: flex-start; }
-        .action-btn { background: #fff; color: #000; border: 1px solid #000; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; text-align: center; }
+        .action-btn { background: #fff; color: #000; border: 1px solid #000; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; text-align: center; display: inline-block; }
         .action-btn:hover { background: #000; color: #fff; }
-        
-        .archive-btn { border-color: #a76d05; color: #a76d05; }
-        .archive-btn:hover { background: #a76d05; color: #fff; border-color: #a76d05; }
-        .restore-btn { border-color: #1e7e34; color: #1e7e34; }
-        .restore-btn:hover { background: #1e7e34; color: #fff; border-color: #1e7e34; }
 
-        /* === שיפורים למובייל בטבלה === */
         @media (max-width: 768px) {
-            /* הסתרת עמודות פחות חשובות */
             th:nth-child(1), td:nth-child(1), /* תאריך */
             th:nth-child(4), td:nth-child(4), /* עיר */
             th:nth-child(5), td:nth-child(5), /* סניף */
             th:nth-child(8), td:nth-child(8)  /* המלצה */
             { display: none; }
-            
-            /* הקטנת גופנים וריווח */
             th, td { padding: 10px 4px; font-size: 12px; }
-            
-            /* כפתורים לאייקונים בלבד במובייל */
-            .action-text { display: none; }
-            .action-btn { padding: 6px; font-size: 14px; min-width: 32px; }
         }
 
         .tag { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 4px; display: inline-block; }
         .tag-role { background: #f0f0f0; color: #555; border: 1px solid #e0e0e0; }
-        
         .tag-score { color: #fff; min-width: 25px; text-align: center; display: block; margin: 0 auto; border-radius: 4px; padding: 2px 5px; }
         .score-excellent { background: #1e7e34; } 
         .score-good { background: #28a745; }      
@@ -142,76 +119,56 @@
             justify-content: center; 
             align-items: flex-end; /* במובייל עולה מלמטה */
             backdrop-filter: blur(4px);
+            overflow: hidden; 
         }
-        
-        @media (min-width: 769px) {
-            .modal-overlay { align-items: center; } /* במחשב במרכז */
-        }
+        @media (min-width: 769px) { .modal-overlay { align-items: center; } }
 
         .modal { 
-            background: #fff; 
-            width: 100%; 
-            max-width: 700px; 
-            height: 85vh; /* גובה קבוע יחסית */
-            display: flex;
-            flex-direction: column;
-            border-radius: 16px 16px 0 0; /* פינות עגולות למעלה */
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.3); 
-            position: relative;
+            background: #fff; width: 100%; max-width: 700px; height: 85vh; max-height: 85vh;
+            display: flex; flex-direction: column;
+            border-radius: 16px 16px 0 0; 
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.3); position: relative;
             animation: slideUp 0.3s ease-out;
         }
-
-        @media (min-width: 769px) {
-            .modal { height: auto; max-height: 85vh; border-radius: 16px; } /* במחשב רגיל */
-        }
-
+        @media (min-width: 769px) { .modal { height: auto; max-height: 85vh; border-radius: 16px; } }
         @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
         .modal-header {
-            padding: 20px;
-            border-bottom: 1px solid #eee;
-            flex-shrink: 0;
-            background: #fff;
-            border-radius: 16px 16px 0 0;
+            padding: 20px; border-bottom: 1px solid #eee; flex-shrink: 0; background: #fff; border-radius: 16px 16px 0 0;
             display: flex; flex-direction: column; gap: 10px;
         }
+        .modal-top-row { display: flex; justify-content: space-between; align-items: center; }
 
         .modal-body {
             padding: 20px;
-            overflow-y: auto; /* הגלילה קורית רק פה */
+            overflow-y: auto; 
             -webkit-overflow-scrolling: touch; 
-            background: #f9f9f9;
-            flex: 1; /* תופס את שאר המקום */
+            overscroll-behavior: contain; /* זה התיקון לגלילה! */
+            background: #f9f9f9; flex: 1;
+            border-radius: 0 0 12px 12px;
         }
 
-        .modal-close { 
-            position: absolute; 
-            top: 15px; left: 15px; 
-            font-size: 30px; 
-            cursor: pointer; color: #aaa; 
-            line-height: 0.8;
-            padding: 5px;
-            z-index: 10;
-        }
+        .modal-close { font-size: 30px; cursor: pointer; color: #aaa; line-height: 0.8; padding: 5px; }
         
-        /* טאבים */
         .modal-tabs { display: flex; gap: 8px; background: #eee; padding: 4px; border-radius: 8px; }
         .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; cursor: pointer; font-weight: 600; font-size: 13px; border-radius: 6px; color: #666; transition: 0.2s; }
         .tab-btn.active { background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); color: #000; font-weight: 800; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        /* עיצוב תשובות */
+        /* כפתורי ארכיון במודל */
+        .modal-actions-btn { font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .btn-arch { color: #a76d05; border-color: #a76d05; }
+        .btn-arch:hover { background: #a76d05; color: #fff; }
+        .btn-rest { color: #1e7e34; border-color: #1e7e34; }
+        .btn-rest:hover { background: #1e7e34; color: #fff; }
+
         .detail-text { font-size: 15px; line-height: 1.5; color: #333; white-space: pre-wrap; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #eee; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-        
         .interview-qa { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-        .interview-qa:last-child { border-bottom: none; }
         .interview-q { font-weight: 700; color: #000; font-size: 15px; margin-bottom: 6px; display: block; }
         .interview-a { color: #444; font-size: 15px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #e0e0e0; display: block; }
-        
-        /* באדג'ים של METADATA */
         .interview-meta { margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; }
-        .meta-badge { font-size: 11px; background: #f0f0f0; padding: 3px 8px; border-radius: 10px; color: #777; border: 1px solid #ddd; display: flex; align-items: center; gap: 4px; }
+        .meta-badge { font-size: 11px; background: #f0f0f0; padding: 3px 8px; border-radius: 10px; color: #777; border: 1px solid #ddd; }
 
         .footer-credit { text-align: center; padding: 20px; font-size: 11px; color: #999; margin-top: auto; border-top: 1px solid #eee; background: #fff; }
     </style>
@@ -244,7 +201,6 @@
                 <button class="nav-btn archive-mode-btn" id="archive-toggle-btn" onclick="toggleArchiveMode()">
                     <span>📂</span> <span class="btn-text" id="archive-btn-text">ארכיון</span>
                 </button>
-
                 <button class="nav-btn" onclick="refreshData()">
                     <span>↻</span> <span class="btn-text">רענן</span>
                 </button>
@@ -293,7 +249,7 @@
                             <th>טלפון</th>
                             <th style="text-align:center;">ציון</th>
                             <th>המלצה</th>
-                            <th>פעולות</th>
+                            <th>פרטים</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
@@ -310,11 +266,17 @@
 
     <div class="modal-overlay" id="modal-view">
         <div class="modal">
-            <span class="modal-close" onclick="closeModal()">&times;</span>
             <div class="modal-header">
-                <h2 id="m-name" style="margin:0; font-size:20px;">פרטי מועמד</h2>
+                <div class="modal-top-row">
+                    <h2 id="m-name" style="margin:0; font-size:20px;">פרטי מועמד</h2>
+                    <span class="modal-close" onclick="closeModal()">&times;</span>
+                </div>
                 
-                <div class="modal-tabs">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
+                    <div id="modal-actions"></div>
+                </div>
+
+                <div class="modal-tabs" style="margin-top:10px;">
                     <button class="tab-btn active" onclick="switchTab('summary')" id="tab-btn-summary">📊 סיכום AI</button>
                     <button class="tab-btn" onclick="switchTab('transcript')" id="tab-btn-transcript">📝 ראיון מלא</button>
                 </div>
@@ -337,8 +299,7 @@
                 </div>
 
                 <div id="tab-content-transcript" class="tab-content">
-                    <div id="m-full-interview">
-                        </div>
+                    <div id="m-full-interview"></div>
                 </div>
             </div>
         </div>
@@ -349,6 +310,7 @@
         let filteredData = [];
         let currentPass = "";
         let isArchiveMode = false; 
+        let scrollPosition = 0; // לשמירת מיקום הגלילה
 
         document.getElementById('pass-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') attemptLogin();
@@ -357,7 +319,6 @@
         function togglePassword() {
             const input = document.getElementById('pass-input');
             const btn = document.getElementById('eye-btn');
-            
             if (input.type === "password") {
                 input.type = "text";
                 btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
@@ -380,10 +341,7 @@
         }
 
         function logout() {
-            currentPass = "";
-            fullData = [];
-            filteredData = [];
-            isArchiveMode = false;
+            currentPass = ""; fullData = []; filteredData = []; isArchiveMode = false;
             updateArchiveUI();
             document.getElementById('pass-input').value = "";
             document.getElementById('login-msg').innerText = "";
@@ -406,14 +364,10 @@
 
             if (isArchiveMode) {
                 btn.classList.add('active-archive');
-                txt.innerText = "חזרה לפעילים";
-                tableTitle.innerText = "ארכיון";
-                statTitle.innerText = "בארכיון";
+                txt.innerText = "חזרה לפעילים"; tableTitle.innerText = "ארכיון"; statTitle.innerText = "בארכיון";
             } else {
                 btn.classList.remove('active-archive');
-                txt.innerText = "ארכיון";
-                tableTitle.innerText = "רשימת מועמדים";
-                statTitle.innerText = "פעילים";
+                txt.innerText = "ארכיון"; tableTitle.innerText = "רשימת מועמדים"; statTitle.innerText = "פעילים";
             }
         }
 
@@ -426,50 +380,34 @@
         async function fetchData() {
             try {
                 const res = await fetch(`/api/admin/candidates?password=${currentPass}`);
-                if (res.status === 401) {
-                    document.getElementById('login-msg').innerText = "סיסמה שגויה, נסה שוב.";
-                    return;
-                }
+                if (res.status === 401) { document.getElementById('login-msg').innerText = "סיסמה שגויה, נסה שוב."; return; }
                 if (!res.ok) throw new Error('Network response was not ok');
-                
                 const data = await res.json();
                 fullData = data;
-                
                 document.getElementById('login-bg-container').style.display = 'none';
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('app-content').style.display = 'flex';
-                // Reset scroll
+                // Reset scroll lock if stuck
                 document.body.classList.remove('modal-open');
-
-                populateBranchFilter();
-                applyFilter();
-            } catch (e) {
-                document.getElementById('login-msg').innerText = "שגיאת תקשורת עם השרת.";
-            }
+                document.body.style.position = '';
+                populateBranchFilter(); applyFilter();
+            } catch (e) { document.getElementById('login-msg').innerText = "שגיאת תקשורת עם השרת."; }
         }
 
         async function updateStatus(phone, newStatus) {
+            closeModal(); // סגירת המודל אם פתוח
             if (!confirm(newStatus === 'archived' ? "להעביר לארכיון?" : "לשחזר לרשימה הפעילה?")) return;
-
             try {
                 const item = fullData.find(i => (i.phone || "").replace("'","") == phone);
                 if (item) item.status = newStatus;
                 applyFilter();
-
                 const res = await fetch('/api/admin/update-status', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password: currentPass, phone: phone, status: newStatus })
                 });
-                
-                if (!res.ok) {
-                    alert("שגיאה בעדכון הסטטוס");
-                    await refreshData();
-                }
-            } catch (e) {
-                alert("תקלת תקשורת");
-                await refreshData();
-            }
+                if (!res.ok) { alert("שגיאה בעדכון הסטטוס"); await refreshData(); }
+            } catch (e) { alert("תקלת תקשורת"); await refreshData(); }
         }
 
         function populateBranchFilter() {
@@ -477,28 +415,17 @@
             const currentVal = select.value;
             select.innerHTML = '<option value="all">הצג את כל הסניפים</option>';
             const branches = [...new Set(fullData.map(item => item.branch))].filter(b => b && b.trim() !== "").sort();
-            branches.forEach(branch => {
-                const opt = document.createElement('option');
-                opt.value = branch;
-                opt.innerText = branch;
-                select.appendChild(opt);
-            });
+            branches.forEach(branch => { const opt = document.createElement('option'); opt.value = branch; opt.innerText = branch; select.appendChild(opt); });
             if (branches.includes(currentVal)) { select.value = currentVal; }
         }
 
         function applyFilter() {
             const selectedBranch = document.getElementById('branch-filter').value;
-            
             let dataByStatus = fullData.filter(item => {
                 const status = item.status || "active";
                 return isArchiveMode ? status === "archived" : status === "active";
             });
-
-            if (selectedBranch === 'all') {
-                filteredData = dataByStatus;
-            } else {
-                filteredData = dataByStatus.filter(item => item.branch === selectedBranch);
-            }
+            if (selectedBranch === 'all') { filteredData = dataByStatus; } else { filteredData = dataByStatus.filter(item => item.branch === selectedBranch); }
             renderData(filteredData);
         }
 
@@ -510,7 +437,6 @@
                 const clean = (text) => (text || "").toString().replace(/,/g, " ").replace(/\n/g, " ");
                 let phone = clean(row.phone).replace(/'/g, "");
                 if (phone && !phone.startsWith('0') && phone.length > 8) phone = '0' + phone;
-                
                 let rowStr = `${clean(row.date)},${clean(row.name)},${clean(row.role)},${clean(row.branch)},${clean(row.city)},'${phone},${clean(row.score)},${clean(row.recommendation)},${row.status || 'active'}`;
                 csvContent += rowStr + "\n";
             });
@@ -527,7 +453,6 @@
             const validScores = data.filter(c => c.score && !isNaN(c.score) && c.score > 0);
             const avg = validScores.length ? (validScores.reduce((acc, c) => acc + parseInt(c.score), 0) / validScores.length).toFixed(1) : "0.0";
             document.getElementById('val-avg').innerText = avg;
-            
             const top = data.filter(c => (parseInt(c.score)||0) >= 8).length;
             document.getElementById('val-top').innerText = top;
             
@@ -543,11 +468,8 @@
             data.forEach((item, index) => {
                 try {
                     const score = parseInt(item.score) || 0;
-                    
                     let scoreClass = 'score-poor'; 
-                    if (score >= 9) scoreClass = 'score-excellent'; 
-                    else if (score >= 7) scoreClass = 'score-good'; 
-                    else if (score >= 5) scoreClass = 'score-average'; 
+                    if (score >= 9) scoreClass = 'score-excellent'; else if (score >= 7) scoreClass = 'score-good'; else if (score >= 5) scoreClass = 'score-average'; 
 
                     let dateStr = item.date;
                     try { dateStr = new Date(item.date).toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit', year:'2-digit'}); } catch(e){}
@@ -566,13 +488,6 @@
                         if (recDisplay.length > 10) recDisplay = recDisplay.substring(0, 10) + "...";
                     }
 
-                    let actionBtn = '';
-                    if (isArchiveMode) {
-                        actionBtn = `<button class="action-btn restore-btn" onclick="updateStatus('${phoneStr.replace(/'/g,"")}', 'active')"><span class="action-icon">♻️</span><span class="action-text"> שחזר</span></button>`;
-                    } else {
-                        actionBtn = `<button class="action-btn archive-btn" onclick="updateStatus('${phoneStr.replace(/'/g,"")}', 'archived')"><span class="action-icon">📥</span><span class="action-text"> ארכיון</span></button>`;
-                    }
-
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${dateStr}</td>
@@ -583,9 +498,8 @@
                         <td style="direction:ltr; text-align:right; font-family:monospace;">${phoneStr}</td>
                         <td style="text-align:center;"><span class="tag tag-score ${scoreClass}">${score}</span></td>
                         <td style="font-size:13px; color:#666;">${recDisplay}</td>
-                        <td class="actions-cell">
-                            <button class="action-btn" onclick="openModal(${index})"><span class="action-icon">👁️</span><span class="action-text"> פרטים</span></button>
-                            ${actionBtn}
+                        <td>
+                            <button class="action-btn" onclick="openModal(${index})"><span class="action-icon">👁️</span> פרטים</button>
                         </td>
                     `;
                     tbody.appendChild(tr);
@@ -596,53 +510,39 @@
         function switchTab(tabName) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
             document.getElementById(`tab-btn-${tabName}`).classList.add('active');
             document.getElementById(`tab-content-${tabName}`).classList.add('active');
         }
 
-        // === פונקציה משופרת לניקוי METADATA ===
         function formatInterviewText(text) {
             if (!text || text.includes("לא נמצא")) return '<div style="color:#999; text-align:center; padding:20px;">לא נשמר תוכן לראיון זה.</div>';
             
-            // 1. ניקוי אגרסיבי של שאריות תגים לפני העיבוד
-            // מוחק [METADATA], [METADAT], ורווחים מיותרים
-            text = text.replace(/\[METADATA\]/gi, "").replace(/\[METADAT\]/gi, "");
+            // מחיקה אגרסיבית של תגיות שגויות
+            text = text.replace(/\[METADAT\]/gi, "").replace(/\[METADATA\]/gi, "").trim();
 
-            // 2. פירוק לפי שאלות
             let parts = text.split(/Question:|Q:/g);
             let html = "";
 
             parts.forEach(part => {
                 if (!part.trim()) return;
-                
-                // מפרק לתשובה ולמטא-דאטה האמיתי
                 let [qText, rest] = part.split(/Answer:|A:/);
                 if (!rest) return;
 
                 let answerText = rest;
                 let metaDataHtml = "";
 
-                // חילוץ המטא-דאטה האמיתי (עם המספרים)
-                // מחפש תבנית שמתחילה ב-[ ומכילה Time או METADATA
+                // חילוץ חכם של מטא-דאטה אמיתי בלבד
                 const metaRegex = /\[(METADATA:|Time=)(.*?)\]/i;
                 let match = metaRegex.exec(rest);
 
                 if (match) {
-                    // מנקה את המטא-דאטה מהתשובה עצמה
                     answerText = answerText.replace(match[0], "").trim();
-                    
-                    let rawMeta = match[2]; // מה שבתוך הסוגריים
-                    
-                    // המרה לאייקונים יפים
-                    rawMeta = rawMeta.replace('Time Taken=', '⏱ ').replace('s', ' שנ\'');
-                    rawMeta = rawMeta.replace('Tab Switches=', ' | ⚠️ יציאות מהחלון: ');
-                    
+                    let rawMeta = match[2].replace('Time Taken=', '⏱ ').replace('s', ' שנ\'').replace('Tab Switches=', ' | ⚠️ יציאות מהחלון: ');
                     metaDataHtml = `<div class="interview-meta"><span class="meta-badge">${rawMeta}</span></div>`;
                 }
-
-                // ניקוי סופי של התשובה משאריות נוספות שאולי פספסנו
-                answerText = answerText.replace(/\[METADATA\]/gi, "").replace(/\[METADAT\]/gi, "").trim();
+                
+                // ניקוי סופי נוסף
+                answerText = answerText.replace(/\[METADAT\]/gi, "").trim();
 
                 html += `
                     <div class="interview-qa">
@@ -654,22 +554,34 @@
             });
             return html;
         }
-        
+
         function openModal(index) {
             const item = filteredData[index];
             if (!item) return;
             
-            // נעילת גלילה
+            // 1. נעילת גלילה חכמה (למניעת קפיצה)
+            scrollPosition = window.scrollY;
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollPosition}px`;
+            document.body.style.width = '100%';
             document.body.classList.add('modal-open');
 
             const score = parseInt(item.score) || 0;
             document.getElementById('m-name').innerText = (item.name || "מועמד") + ` (ציון התאמה: ${score}/10)`;
-            
             document.getElementById('m-general').innerHTML = item.general || "לא התקבל סיכום ממערכת ה-AI.";
             document.getElementById('m-strengths').innerHTML = item.strengths || "-";
             document.getElementById('m-weaknesses').innerHTML = item.weaknesses || "-";
-            
             document.getElementById('m-full-interview').innerHTML = formatInterviewText(item.fullInterview);
+
+            // הזרקת כפתור ארכיון לתוך המודל
+            let phoneStr = (item.phone || "").toString().replace(/'/g,"");
+            let actionBtn = '';
+            if (isArchiveMode) {
+                actionBtn = `<button class="modal-actions-btn btn-rest" onclick="updateStatus('${phoneStr}', 'active')">♻️ שחזר לרשימה</button>`;
+            } else {
+                actionBtn = `<button class="modal-actions-btn btn-arch" onclick="updateStatus('${phoneStr}', 'archived')">📥 העבר לארכיון</button>`;
+            }
+            document.getElementById('modal-actions').innerHTML = actionBtn;
 
             switchTab('summary');
             document.getElementById('modal-view').style.display = 'flex';
@@ -677,8 +589,12 @@
 
         function closeModal() {
             document.getElementById('modal-view').style.display = 'none';
-            // שחרור גלילה
+            // 2. שחרור נעילת גלילה ושחזור מיקום
             document.body.classList.remove('modal-open');
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.width = '';
+            window.scrollTo(0, scrollPosition);
         }
         
         const style = document.createElement('style');
