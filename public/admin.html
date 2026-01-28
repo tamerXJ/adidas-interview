@@ -20,8 +20,13 @@
             flex-direction: column;
         }
 
-        /* מונע גלילה של הרקע כשהמודל פתוח */
-        body.modal-open { overflow: hidden; height: 100vh; }
+        /* === תיקון גלילה קריטי למובייל === */
+        body.modal-open {
+            overflow: hidden;
+            position: fixed; /* נועל את המסך לחלוטין */
+            width: 100%;
+            height: 100%;
+        }
 
         #login-bg-container {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 998;
@@ -58,103 +63,125 @@
         
         .nav-actions { display: flex; gap: 8px; align-items: center; }
         .nav-btn { background: #f4f4f4; border: 1px solid #eee; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; display: flex; align-items: center; gap: 4px; transition: 0.2s; color: #333; }
-        .nav-btn span { display: inline-block; }
-        .btn-text { display: inline-block; } /* טקסט בכפתור */
         
+        /* הסתרת טקסט כפתורים במובייל לחיסכון במקום */
         @media (max-width: 600px) {
-            .btn-text { display: none; } /* הסתרת טקסט כפתורים במובייל לחסכון במקום */
-            .logo { font-size: 14px; }
+            .btn-text { display: none; } 
+            .logo span { display: none; } /* הסתרת שם הלוגו במובייל */
+            .logo img { width: 45px; }
             .container { padding: 15px !important; }
         }
 
         .archive-mode-btn { background: #333; color: #fff; border: none; }
         .active-archive { background: #ffc107; color: #000; border-color: #e0a800; }
 
-        .container { padding: 40px; max-width: 1400px; margin: 0 auto; width: 100%; flex: 1; }
+        .container { padding: 40px; max-width: 1400px; margin: 0 auto; width: 100%; flex: 1; overflow-y: auto; }
 
         .filter-bar { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
         .filter-select { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; flex: 1; min-width: 150px; cursor: pointer; background-color: #fff; }
         .export-btn { background: #27ae60; color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; transition: 0.2s; white-space: nowrap; }
 
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
         .stat-card { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); text-align: right; border-right: 4px solid #000; }
-        .stat-title { color: #777; font-size: 12px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
-        .stat-value { font-size: 28px; font-weight: 800; color: #000; margin-top: 5px; }
+        .stat-title { color: #777; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
+        .stat-value { font-size: 24px; font-weight: 800; color: #000; margin-top: 5px; }
 
-        /* === TABLE STYLES (Responsive) === */
+        /* === טבלה רספונסיבית === */
         .table-wrapper { background: #fff; border-radius: 12px; overflow-x: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border: 1px solid #eee; -webkit-overflow-scrolling: touch; }
-        table { width: 100%; border-collapse: collapse; min-width: 100%; } /* min-width 100% כדי שלא יברח */
+        table { width: 100%; border-collapse: collapse; min-width: 100%; }
         thead { background: #000; color: #fff; }
-        th { text-align: right; padding: 15px 10px; font-size: 13px; font-weight: 600; white-space: nowrap; }
-        td { padding: 12px 10px; border-bottom: 1px solid #eee; font-size: 13px; color: #333; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        th { text-align: right; padding: 12px 8px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+        td { padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 13px; color: #333; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         
         tbody tr:hover { background-color: #f9f9f9; }
 
-        /* הסתרת עמודות פחות חשובות במובייל כדי למנוע עומס */
+        /* כפתורי פעולה בטבלה */
+        .actions-cell { display: flex; gap: 5px; justify-content: flex-start; }
+        .action-btn { background: #fff; color: #000; border: 1px solid #000; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; text-align: center; }
+        .action-btn:hover { background: #000; color: #fff; }
+        
+        .archive-btn { border-color: #a76d05; color: #a76d05; }
+        .archive-btn:hover { background: #a76d05; color: #fff; border-color: #a76d05; }
+        .restore-btn { border-color: #1e7e34; color: #1e7e34; }
+        .restore-btn:hover { background: #1e7e34; color: #fff; border-color: #1e7e34; }
+
+        /* === שיפורים למובייל בטבלה === */
         @media (max-width: 768px) {
+            /* הסתרת עמודות פחות חשובות */
             th:nth-child(1), td:nth-child(1), /* תאריך */
             th:nth-child(4), td:nth-child(4), /* עיר */
             th:nth-child(5), td:nth-child(5), /* סניף */
-            th:nth-child(8), td:nth-child(8)  /* המלצה/לינק */
+            th:nth-child(8), td:nth-child(8)  /* המלצה */
             { display: none; }
             
-            th, td { padding: 10px 5px; font-size: 12px; }
-            .action-btn { padding: 4px 8px; font-size: 11px; }
+            /* הקטנת גופנים וריווח */
+            th, td { padding: 10px 4px; font-size: 12px; }
+            
+            /* כפתורים לאייקונים בלבד במובייל */
+            .action-text { display: none; }
+            .action-btn { padding: 6px; font-size: 14px; min-width: 32px; }
         }
 
         .tag { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 4px; display: inline-block; }
         .tag-role { background: #f0f0f0; color: #555; border: 1px solid #e0e0e0; }
         
-        .tag-score { color: #fff; min-width: 30px; text-align: center; display: block; margin: 0 auto; }
+        .tag-score { color: #fff; min-width: 25px; text-align: center; display: block; margin: 0 auto; border-radius: 4px; padding: 2px 5px; }
         .score-excellent { background: #1e7e34; } 
         .score-good { background: #28a745; }      
         .score-average { background: #ffc107; color: #212529; } 
         .score-poor { background: #dc3545; }      
 
-        /* === Modal Styles (Fixed Logic) === */
+        /* === מודל (Popup) משופר === */
         .modal-overlay { 
             display: none; 
             position: fixed; 
             top: 0; left: 0; right: 0; bottom: 0;
             width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.7); 
+            background: rgba(0,0,0,0.8); 
             z-index: 9999; 
             justify-content: center; 
-            align-items: center; /* Center */
-            backdrop-filter: blur(3px);
-            padding: 10px; /* Padding for mobile edges */
-            overflow-y: hidden; /* מניעת גלילה כפולה */
+            align-items: flex-end; /* במובייל עולה מלמטה */
+            backdrop-filter: blur(4px);
         }
         
+        @media (min-width: 769px) {
+            .modal-overlay { align-items: center; } /* במחשב במרכז */
+        }
+
         .modal { 
             background: #fff; 
             width: 100%; 
-            max-width: 650px; 
-            max-height: 85vh; /* גובה מקסימלי ביחס למסך */
+            max-width: 700px; 
+            height: 85vh; /* גובה קבוע יחסית */
             display: flex;
             flex-direction: column;
-            border-radius: 12px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            border-radius: 16px 16px 0 0; /* פינות עגולות למעלה */
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.3); 
             position: relative;
             animation: slideUp 0.3s ease-out;
         }
 
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @media (min-width: 769px) {
+            .modal { height: auto; max-height: 85vh; border-radius: 16px; } /* במחשב רגיל */
+        }
+
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
         .modal-header {
             padding: 20px;
             border-bottom: 1px solid #eee;
-            flex-shrink: 0; /* לא מתכווץ */
+            flex-shrink: 0;
             background: #fff;
-            border-radius: 12px 12px 0 0;
+            border-radius: 16px 16px 0 0;
+            display: flex; flex-direction: column; gap: 10px;
         }
 
         .modal-body {
             padding: 20px;
-            overflow-y: auto; /* הגלילה קורית כאן */
-            -webkit-overflow-scrolling: touch; /* גלילה חלקה באייפון */
-            background: #fff;
-            border-radius: 0 0 12px 12px;
+            overflow-y: auto; /* הגלילה קורית רק פה */
+            -webkit-overflow-scrolling: touch; 
+            background: #f9f9f9;
+            flex: 1; /* תופס את שאר המקום */
         }
 
         .modal-close { 
@@ -166,37 +193,25 @@
             padding: 5px;
             z-index: 10;
         }
-        .modal-close:hover { color: #000; }
-
-        /* תוכן המודל */
-        .detail-row { margin-bottom: 15px; }
-        .detail-label { font-weight: 800; font-size: 13px; color: #444; display: block; margin-bottom: 6px; text-transform: uppercase; }
-        .detail-text { font-size: 15px; line-height: 1.5; color: #000; white-space: pre-wrap; background: #f9f9f9; padding: 12px; border-radius: 8px; border: 1px solid #eee; }
-        .detail-text ul, .detail-text ol { margin-right: 20px; padding: 0; margin-top: 5px; margin-bottom: 5px; }
-        .detail-text li { margin-bottom: 4px; }
         
-        /* עיצוב טאבים משופר */
-        .modal-tabs { display: flex; gap: 8px; margin-bottom: 15px; background: #f4f4f4; padding: 4px; border-radius: 8px; }
-        .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; cursor: pointer; font-weight: 600; font-size: 13px; border-radius: 6px; color: #777; transition: 0.2s; }
+        /* טאבים */
+        .modal-tabs { display: flex; gap: 8px; background: #eee; padding: 4px; border-radius: 8px; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; cursor: pointer; font-weight: 600; font-size: 13px; border-radius: 6px; color: #666; transition: 0.2s; }
         .tab-btn.active { background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); color: #000; font-weight: 800; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        /* עיצוב ראיון מלא */
-        .interview-qa { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .interview-q { font-weight: 700; color: #000; font-size: 14px; margin-bottom: 4px; }
-        .interview-a { color: #333; font-size: 14px; background: #fff; padding: 8px; border-radius: 6px; border: 1px solid #f0f0f0; }
-        .interview-meta { font-size: 11px; color: #999; margin-top: 4px; display: flex; gap: 10px; align-items: center; }
-        .meta-badge { background: #eee; padding: 2px 6px; border-radius: 4px; }
-
-        .actions-cell { display: flex; gap: 5px; }
-        .action-btn { background: #fff; color: #000; border: 1px solid #000; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; text-align: center; flex: 1; white-space: nowrap; }
-        .action-btn:hover { background: #000; color: #fff; }
+        /* עיצוב תשובות */
+        .detail-text { font-size: 15px; line-height: 1.5; color: #333; white-space: pre-wrap; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #eee; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
         
-        .archive-btn { border-color: #a76d05; color: #a76d05; }
-        .archive-btn:hover { background: #a76d05; color: #fff; border-color: #a76d05; }
-        .restore-btn { border-color: #1e7e34; color: #1e7e34; }
-        .restore-btn:hover { background: #1e7e34; color: #fff; border-color: #1e7e34; }
+        .interview-qa { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .interview-qa:last-child { border-bottom: none; }
+        .interview-q { font-weight: 700; color: #000; font-size: 15px; margin-bottom: 6px; display: block; }
+        .interview-a { color: #444; font-size: 15px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #e0e0e0; display: block; }
+        
+        /* באדג'ים של METADATA */
+        .interview-meta { margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .meta-badge { font-size: 11px; background: #f0f0f0; padding: 3px 8px; border-radius: 10px; color: #777; border: 1px solid #ddd; display: flex; align-items: center; gap: 4px; }
 
         .footer-credit { text-align: center; padding: 20px; font-size: 11px; color: #999; margin-top: auto; border-top: 1px solid #eee; background: #fff; }
     </style>
@@ -223,11 +238,9 @@
         <div class="navbar">
             <div class="logo">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Adidas_2022_logo.svg" alt="Adidas">
-                <span>ADIDAS RECRUIT</span>
+                <span>RECRUIT</span>
             </div>
             <div class="nav-actions">
-                <div id="refresh-time" style="font-size:11px; color:#777; margin-left:5px; display:none;"></div>
-                
                 <button class="nav-btn archive-mode-btn" id="archive-toggle-btn" onclick="toggleArchiveMode()">
                     <span>📂</span> <span class="btn-text" id="archive-btn-text">ארכיון</span>
                 </button>
@@ -299,7 +312,7 @@
         <div class="modal">
             <span class="modal-close" onclick="closeModal()">&times;</span>
             <div class="modal-header">
-                <h2 id="m-name" style="margin:0; font-size:20px; margin-bottom:15px;">פרטי מועמד</h2>
+                <h2 id="m-name" style="margin:0; font-size:20px;">פרטי מועמד</h2>
                 
                 <div class="modal-tabs">
                     <button class="tab-btn active" onclick="switchTab('summary')" id="tab-btn-summary">📊 סיכום AI</button>
@@ -555,9 +568,9 @@
 
                     let actionBtn = '';
                     if (isArchiveMode) {
-                        actionBtn = `<button class="action-btn restore-btn" onclick="updateStatus('${phoneStr.replace(/'/g,"")}', 'active')">♻️ שחזר</button>`;
+                        actionBtn = `<button class="action-btn restore-btn" onclick="updateStatus('${phoneStr.replace(/'/g,"")}', 'active')"><span class="action-icon">♻️</span><span class="action-text"> שחזר</span></button>`;
                     } else {
-                        actionBtn = `<button class="action-btn archive-btn" onclick="updateStatus('${phoneStr.replace(/'/g,"")}', 'archived')">📥 ארכיון</button>`;
+                        actionBtn = `<button class="action-btn archive-btn" onclick="updateStatus('${phoneStr.replace(/'/g,"")}', 'archived')"><span class="action-icon">📥</span><span class="action-text"> ארכיון</span></button>`;
                     }
 
                     const tr = document.createElement('tr');
@@ -571,7 +584,7 @@
                         <td style="text-align:center;"><span class="tag tag-score ${scoreClass}">${score}</span></td>
                         <td style="font-size:13px; color:#666;">${recDisplay}</td>
                         <td class="actions-cell">
-                            <button class="action-btn" onclick="openModal(${index})">פרטים</button>
+                            <button class="action-btn" onclick="openModal(${index})"><span class="action-icon">👁️</span><span class="action-text"> פרטים</span></button>
                             ${actionBtn}
                         </td>
                     `;
@@ -580,7 +593,6 @@
             });
         }
 
-        // === לוגיקת טאבים ===
         function switchTab(tabName) {
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -589,47 +601,50 @@
             document.getElementById(`tab-content-${tabName}`).classList.add('active');
         }
 
-        // === פונקציה לעיצוב הראיון המלא (פותר את בעיית ה-Input) ===
+        // === פונקציה לניקוי METADATA מתקדם ===
         function formatInterviewText(text) {
             if (!text || text.includes("לא נמצא")) return '<div style="color:#999; text-align:center; padding:20px;">לא נשמר תוכן לראיון זה.</div>';
             
-            // מפריד את הטקסט לפי בלוקים של שאלות
+            // 1. הסרת התג המלוכלך [METADATA] אם הוא מופיע לבד
+            text = text.replace(/\[METADATA\]/g, "");
+
+            // 2. פירוק לפי שאלות
             let parts = text.split(/Question:|Q:/g);
             let html = "";
 
             parts.forEach(part => {
                 if (!part.trim()) return;
                 
-                // מפרק לתשובה ומטא-דאטה
+                // מפרק לתשובה ולמטא-דאטה האמיתי
                 let [qText, rest] = part.split(/Answer:|A:/);
                 if (!rest) return;
 
                 let answerText = rest;
-                let metaData = "";
+                let metaDataHtml = "";
 
-                // חילוץ המטא-דאטה (הסוגריים המרובעים)
-                if (rest.includes('[METADATA:')) {
-                    let splitMeta = rest.split('[METADATA:');
-                    answerText = splitMeta[0];
-                    let rawMeta = splitMeta[1].split(']')[0]; // Time Taken=2s, Tab Switches=0
+                // חילוץ המטא-דאטה עם Regex חכם יותר
+                // מחפש תבנית [METADATA: ... ] או [Time=...]
+                const metaRegex = /\[(METADATA:|Time=)(.*?)\]/g;
+                let match = metaRegex.exec(rest);
+
+                if (match) {
+                    // מנקה את המטא-דאטה מהתשובה עצמה
+                    answerText = answerText.replace(match[0], "").trim();
+                    
+                    let rawMeta = match[2]; // מה שבתוך הסוגריים
                     
                     // ניקוי והחלפה לאייקונים
                     rawMeta = rawMeta.replace('Time Taken=', '⏱ ').replace('s', ' שנ\'');
-                    rawMeta = rawMeta.replace('Tab Switches=', ' | ↹ יציאות מהחלון: ');
+                    rawMeta = rawMeta.replace('Tab Switches=', ' | ⚠️ יציאות מהחלון: ');
                     
-                    metaData = `<div class="interview-meta"><span class="meta-badge">${rawMeta}</span></div>`;
-                } else if (rest.includes('[Time=')) { // פורמט ישן
-                     let splitMeta = rest.split('[Time=');
-                     answerText = splitMeta[0];
-                     let rawMeta = splitMeta[1].split(']')[0];
-                     metaData = `<div class="interview-meta"><span class="meta-badge">⏱ ${rawMeta} שנ'</span></div>`;
+                    metaDataHtml = `<div class="interview-meta"><span class="meta-badge">${rawMeta}</span></div>`;
                 }
 
                 html += `
                     <div class="interview-qa">
-                        <div class="interview-q">ש: ${qText.trim()}</div>
-                        <div class="interview-a">${answerText.trim()}</div>
-                        ${metaData}
+                        <span class="interview-q">ש: ${qText.trim()}</span>
+                        <span class="interview-a">${answerText.trim()}</span>
+                        ${metaDataHtml}
                     </div>
                 `;
             });
@@ -650,7 +665,6 @@
             document.getElementById('m-strengths').innerHTML = item.strengths || "-";
             document.getElementById('m-weaknesses').innerHTML = item.weaknesses || "-";
             
-            // שימוש בפונקציית העיצוב החדשה
             document.getElementById('m-full-interview').innerHTML = formatInterviewText(item.fullInterview);
 
             switchTab('summary');
