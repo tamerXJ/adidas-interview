@@ -12,15 +12,13 @@
             margin: 0; 
             background-color: var(--bg-gray); 
             color: #333; 
+            cursor: default; 
+            user-select: none;
+            -webkit-user-select: none;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow-x: hidden; /* מניעת גלילה אופקית מיותרת */
         }
-
-        /* אפשרנו בחירת טקסט כדי שיהיה ניתן להעתיק פרטים */
-        body, input, textarea, table { user-select: text; -webkit-user-select: text; }
-        button, .nav-btn, .action-btn { user-select: none; -webkit-user-select: none; }
 
         body.modal-open { overflow: hidden; position: fixed; width: 100%; height: 100%; }
 
@@ -35,7 +33,7 @@
              display: flex; justify-content: center; align-items: center; flex-direction: column;
         }
 
-        input, textarea { cursor: text; }
+        input, textarea { cursor: text; user-select: text; -webkit-user-select: text; }
         * { box-sizing: border-box; outline: none; }
         
         .login-box { background: #fff; padding: 40px; border-radius: 12px; text-align: center; width: 90%; max-width: 380px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
@@ -417,9 +415,7 @@
 
         async function fetchData() {
             try {
-                // Note: Sending password in query params is not ideal security practice, 
-                // normally should be a POST or Header, but keeping as requested.
-                const res = await fetch(`/api/admin/candidates?password=${encodeURIComponent(currentPass)}`);
+                const res = await fetch(`/api/admin/candidates?password=${currentPass}`);
                 if (res.status === 401) { document.getElementById('login-msg').innerText = "סיסמה שגויה, נסה שוב."; return; }
                 if (!res.ok) throw new Error('Network response was not ok');
                 const data = await res.json();
@@ -437,17 +433,13 @@
             closeModal(); 
             if (!confirm(newStatus === 'archived' ? "להעביר לארכיון?" : "לשחזר לרשימה הפעילה?")) return;
             try {
-                // Clean phone number for comparison
-                const cleanPhone = (phone || "").replace(/'/g,"").replace(/"/g,"");
-                const item = fullData.find(i => (i.phone || "").replace(/'/g,"").replace(/"/g,"") == cleanPhone);
+                const item = fullData.find(i => (i.phone || "").replace("'","") == phone);
                 if (item) item.status = newStatus;
-                
                 applyFilter();
-                
                 const res = await fetch('/api/admin/update-status', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: currentPass, phone: cleanPhone, status: newStatus })
+                    body: JSON.stringify({ password: currentPass, phone: phone, status: newStatus })
                 });
                 if (!res.ok) { alert("שגיאה בעדכון הסטטוס"); await refreshData(); }
             } catch (e) { alert("תקלת תקשורת"); await refreshData(); }
@@ -476,11 +468,10 @@
                 dataByStatus = dataByStatus.filter(item => item.branch === selectedBranch);
             }
 
-            // סינון לפי המלצה
+            // סינון לפי המלצה (חדש)
             if (selectedRec !== 'all') {
                 dataByStatus = dataByStatus.filter(item => {
-                    const rec = (item.recommendation || "").toString();
-                    return rec.includes(selectedRec);
+                    return item.recommendation && item.recommendation.toString().includes(selectedRec);
                 });
             }
 
@@ -492,34 +483,19 @@
             if (filteredData.length === 0) { alert("אין נתונים להורדה"); return; }
             let csvContent = "\uFEFF"; 
             csvContent += "תאריך,שם מלא,תפקיד,סניף,עיר מגורים,טלפון,ציון,המלצה/לינק,סטטוס\n";
-            
             filteredData.forEach(row => {
-                const clean = (text) => (text || "").toString().replace(/"/g, '""'); 
-                
+                const clean = (text) => (text || "").toString().replace(/,/g, " ").replace(/\n/g, " ");
                 let phone = clean(row.phone).replace(/'/g, "");
                 if (phone && !phone.startsWith('0') && phone.length > 8) phone = '0' + phone;
-
-                let rowStr = `"${clean(row.date)}","${clean(row.name)}","${clean(row.role)}","${clean(row.branch)}","${clean(row.city)}","${phone}","${clean(row.score)}","${clean(row.recommendation)}","${row.status || 'active'}"`;
+                let rowStr = `${clean(row.date)},${clean(row.name)},${clean(row.role)},${clean(row.branch)},${clean(row.city)},'${phone},${clean(row.score)},${clean(row.recommendation)},${row.status || 'active'}`;
                 csvContent += rowStr + "\n";
             });
-
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
             const date = new Date().toISOString().slice(0,10);
             link.download = `Adidas_Candidates_${isArchiveMode ? 'Archive' : 'Active'}_${date}.csv`;
             link.click();
-        }
-
-        // Helper to prevent XSS
-        function escapeHtml(text) {
-            if (text === null || text === undefined) return "";
-            return text.toString()
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
         }
 
         function renderData(data) {
@@ -545,43 +521,39 @@
                     let scoreClass = 'score-poor'; 
                     if (score >= 9) scoreClass = 'score-excellent'; else if (score >= 7) scoreClass = 'score-good'; else if (score >= 5) scoreClass = 'score-average'; 
 
-                    let dateStr = item.date || "-";
-                    try { if(item.date) dateStr = new Date(item.date).toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit', year:'2-digit'}); } catch(e){}
-                    if (dateStr === "Invalid Date") dateStr = "-";
+                    let dateStr = item.date;
+                    try { dateStr = new Date(item.date).toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit', year:'2-digit'}); } catch(e){}
 
-                    const city = escapeHtml(item.city || "-");
-                    const safeName = escapeHtml(item.name || "ללא שם");
+                    const city = item.city || "-";
                     const roleMap = { 'sales': 'מוכרן/צוות', 'shift_manager': 'אחמ"ש', 'store_manager': 'מנהל/סגן' };
-                    const role = roleMap[item.role] || escapeHtml(item.role) || "-";
+                    const role = roleMap[item.role] || item.role || "-";
                     
-                    let phoneStr = (item.phone || "-").toString().replace(/'/g, "").replace(/"/g, "");
-                    if (phoneStr !== "-" && !phoneStr.startsWith('0') && phoneStr.length >= 9) { phoneStr = "0" + phoneStr; }
+                    let phoneStr = (item.phone || "-").toString().replace("'", "");
+                    if (phoneStr !== "-" && !phoneStr.startsWith('0') && phoneStr.length > 8) { phoneStr = "0" + phoneStr; }
 
                     let recDisplay = item.recommendation || "-";
                     if (recDisplay.toString().startsWith("http")) {
                         recDisplay = `<a href="${recDisplay}" target="_blank" style="color:#007bff; text-decoration:none; font-weight:600;">📄 קו"ח</a>`;
                     } else {
-                        recDisplay = escapeHtml(recDisplay);
                         if (recDisplay.length > 10) recDisplay = recDisplay.substring(0, 10) + "...";
                     }
 
-                    // Safe strings for function calls
-                    const safePhoneForClick = phoneStr.replace(/"/g, '&quot;').replace(/'/g, "\\'");
-
+                    // === השינוי כאן: הוספת "העבר לארכיון" לטבלה בדסקטופ ===
                     let archiveBtnTable = '';
                     if (isArchiveMode) {
-                        archiveBtnTable = `<button class="action-btn desktop-action btn-rest" onclick="updateStatus('${safePhoneForClick}', 'active')">♻️ שחזר</button>`;
+                        archiveBtnTable = `<button class="action-btn desktop-action btn-rest" onclick="updateStatus('${phoneStr}', 'active')">♻️ שחזר</button>`;
                     } else {
-                        archiveBtnTable = `<button class="action-btn desktop-action btn-arch" onclick="updateStatus('${safePhoneForClick}', 'archived')">📥 העבר לארכיון</button>`;
+                        // הוספתי "העבר ל" לפני המילה ארכיון
+                        archiveBtnTable = `<button class="action-btn desktop-action btn-arch" onclick="updateStatus('${phoneStr}', 'archived')">📥 העבר לארכיון</button>`;
                     }
 
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${dateStr}</td>
-                        <td style="font-weight:700">${safeName}</td>
+                        <td style="font-weight:700">${item.name || "ללא שם"}</td>
                         <td><span class="tag tag-role">${role}</span></td>
                         <td>${city}</td>
-                        <td>${escapeHtml(item.branch || "-")}</td>
+                        <td>${item.branch || "-"}</td>
                         <td style="direction:ltr; text-align:right; font-family:monospace;">${phoneStr}</td>
                         <td style="text-align:center;"><span class="tag tag-score ${scoreClass}">${score}</span></td>
                         <td style="font-size:13px; color:#666;">${recDisplay}</td>
@@ -637,8 +609,8 @@
 
                 html += `
                     <div class="interview-qa">
-                        <span class="interview-q">ש: ${escapeHtml(qText.trim())}</span>
-                        <span class="interview-a">${escapeHtml(answerText)}</span>
+                        <span class="interview-q">ש: ${qText.trim()}</span>
+                        <span class="interview-a">${answerText}</span>
                         ${metaDataHtml}
                     </div>
                 `;
@@ -660,31 +632,29 @@
             document.getElementById('m-name').innerText = (item.name || "מועמד") + ` (ציון התאמה: ${score}/10)`;
 
             let recLink = item.recommendation;
-            let recDisplay = (recLink && recLink.toString().startsWith('http')) ? `<a href="${recLink}" target="_blank" style="color:#007bff; text-decoration:none;">📄 צפייה בקו"ח</a>` : 'אין קו"ח';
+            let recDisplay = (recLink && recLink.startsWith('http')) ? `<a href="${recLink}" target="_blank" style="color:#007bff; text-decoration:none;">📄 צפייה בקו"ח</a>` : 'אין קו"ח';
             
             let dateDisplay = '-';
-            try { if(item.date) dateDisplay = new Date(item.date).toLocaleDateString('he-IL'); } catch(e){}
+            try { dateDisplay = new Date(item.date).toLocaleDateString('he-IL'); } catch(e){}
 
             document.getElementById('m-meta-grid').innerHTML = `
                 <div class="meta-item"><span class="meta-icon">📅</span> ${dateDisplay}</div>
-                <div class="meta-item"><span class="meta-icon">🏢</span> ${escapeHtml(item.branch || '-')}</div>
-                <div class="meta-item"><span class="meta-icon">📍</span> ${escapeHtml(item.city || '-')}</div>
+                <div class="meta-item"><span class="meta-icon">🏢</span> ${item.branch || '-'}</div>
+                <div class="meta-item"><span class="meta-icon">📍</span> ${item.city || '-'}</div>
                 <div class="meta-item"><span class="meta-icon">📎</span> ${recDisplay}</div>
             `;
 
-            document.getElementById('m-general').innerText = item.general || "לא התקבל סיכום ממערכת ה-AI.";
-            document.getElementById('m-strengths').innerText = item.strengths || "-";
-            document.getElementById('m-weaknesses').innerText = item.weaknesses || "-";
+            document.getElementById('m-general').innerHTML = item.general || "לא התקבל סיכום ממערכת ה-AI.";
+            document.getElementById('m-strengths').innerHTML = item.strengths || "-";
+            document.getElementById('m-weaknesses').innerHTML = item.weaknesses || "-";
             document.getElementById('m-full-interview').innerHTML = formatInterviewText(item.fullInterview);
 
-            let phoneStr = (item.phone || "").toString().replace(/'/g,"").replace(/"/g,"");
-            let safePhoneForClick = phoneStr.replace(/"/g, '&quot;').replace(/'/g, "\\'");
-            
+            let phoneStr = (item.phone || "").toString().replace(/'/g,"");
             let actionBtn = '';
             if (isArchiveMode) {
-                actionBtn = `<button class="modal-actions-btn btn-rest" onclick="updateStatus('${safePhoneForClick}', 'active')">♻️ שחזר לרשימה</button>`;
+                actionBtn = `<button class="modal-actions-btn btn-rest" onclick="updateStatus('${phoneStr}', 'active')">♻️ שחזר לרשימה</button>`;
             } else {
-                actionBtn = `<button class="modal-actions-btn btn-arch" onclick="updateStatus('${safePhoneForClick}', 'archived')">📥 העבר לארכיון</button>`;
+                actionBtn = `<button class="modal-actions-btn btn-arch" onclick="updateStatus('${phoneStr}', 'archived')">📥 העבר לארכיון</button>`;
             }
             document.getElementById('modal-actions').innerHTML = actionBtn;
 
