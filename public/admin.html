@@ -151,15 +151,13 @@
         }
         .modal-top-row { display: flex; justify-content: space-between; align-items: center; }
 
-        /* === שינוי חשוב: הסתרת המידע הכפול במחשב === */
         .meta-grid { 
             display: none; /* מוסתר כברירת מחדל למחשב */
             grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; margin-bottom: 5px; 
         }
         
-        /* הצגת המידע רק במובייל */
         @media (max-width: 768px) {
-            .meta-grid { display: grid; }
+            .meta-grid { display: grid; } /* מוצג רק במובייל */
         }
 
         .meta-item { 
@@ -417,7 +415,8 @@
 
         async function fetchData() {
             try {
-                const res = await fetch(`/api/admin/candidates?password=${currentPass}`);
+                // במצב אמת, עדיף לשלוח סיסמה ב-Header ולא ב-URL
+                const res = await fetch(`/api/admin/candidates?password=${encodeURIComponent(currentPass)}`);
                 if (res.status === 401) { document.getElementById('login-msg').innerText = "סיסמה שגויה, נסה שוב."; return; }
                 if (!res.ok) throw new Error('Network response was not ok');
                 const data = await res.json();
@@ -435,7 +434,8 @@
             closeModal(); 
             if (!confirm(newStatus === 'archived' ? "להעביר לארכיון?" : "לשחזר לרשימה הפעילה?")) return;
             try {
-                const item = fullData.find(i => (i.phone || "").replace("'","") == phone);
+                // חיפוש חכם יותר למקרה שיש גרש בטלפון
+                const item = fullData.find(i => (i.phone || "").replace(/'/g,"") == phone);
                 if (item) item.status = newStatus;
                 applyFilter();
                 const res = await fetch('/api/admin/update-status', {
@@ -470,10 +470,11 @@
                 dataByStatus = dataByStatus.filter(item => item.branch === selectedBranch);
             }
 
-            // סינון לפי המלצה (חדש)
+            // סינון לפי המלצה
             if (selectedRec !== 'all') {
                 dataByStatus = dataByStatus.filter(item => {
-                    return item.recommendation && item.recommendation.toString().includes(selectedRec);
+                    const rec = (item.recommendation || "").toString();
+                    return rec.includes(selectedRec);
                 });
             }
 
@@ -485,19 +486,35 @@
             if (filteredData.length === 0) { alert("אין נתונים להורדה"); return; }
             let csvContent = "\uFEFF"; 
             csvContent += "תאריך,שם מלא,תפקיד,סניף,עיר מגורים,טלפון,ציון,המלצה/לינק,סטטוס\n";
+            
             filteredData.forEach(row => {
-                const clean = (text) => (text || "").toString().replace(/,/g, " ").replace(/\n/g, " ");
+                const clean = (text) => (text || "").toString().replace(/"/g, '""'); // Escape double quotes
+                
                 let phone = clean(row.phone).replace(/'/g, "");
                 if (phone && !phone.startsWith('0') && phone.length > 8) phone = '0' + phone;
-                let rowStr = `${clean(row.date)},${clean(row.name)},${clean(row.role)},${clean(row.branch)},${clean(row.city)},'${phone},${clean(row.score)},${clean(row.recommendation)},${row.status || 'active'}`;
+
+                // Wrapping fields in quotes prevents CSV breakage if content has commas
+                let rowStr = `"${clean(row.date)}","${clean(row.name)}","${clean(row.role)}","${clean(row.branch)}","${clean(row.city)}","${phone}","${clean(row.score)}","${clean(row.recommendation)}","${row.status || 'active'}"`;
                 csvContent += rowStr + "\n";
             });
+
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
             const date = new Date().toISOString().slice(0,10);
             link.download = `Adidas_Candidates_${isArchiveMode ? 'Archive' : 'Active'}_${date}.csv`;
             link.click();
+        }
+
+        // Helper to prevent XSS and allow quotes in inline JS
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text.toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
         }
 
         function renderData(data) {
@@ -523,37 +540,41 @@
                     let scoreClass = 'score-poor'; 
                     if (score >= 9) scoreClass = 'score-excellent'; else if (score >= 7) scoreClass = 'score-good'; else if (score >= 5) scoreClass = 'score-average'; 
 
-                    let dateStr = item.date;
-                    try { dateStr = new Date(item.date).toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit', year:'2-digit'}); } catch(e){}
+                    let dateStr = item.date || "-";
+                    try { if(item.date) dateStr = new Date(item.date).toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit', year:'2-digit'}); } catch(e){}
+                    if (dateStr === "Invalid Date") dateStr = "-";
 
-                    const city = item.city || "-";
+                    const city = escapeHtml(item.city || "-");
+                    const safeName = escapeHtml(item.name || "ללא שם");
                     const roleMap = { 'sales': 'מוכרן/צוות', 'shift_manager': 'אחמ"ש', 'store_manager': 'מנהל/סגן' };
-                    const role = roleMap[item.role] || item.role || "-";
+                    const role = roleMap[item.role] || escapeHtml(item.role) || "-";
                     
-                    let phoneStr = (item.phone || "-").toString().replace("'", "");
-                    if (phoneStr !== "-" && !phoneStr.startsWith('0') && phoneStr.length > 8) { phoneStr = "0" + phoneStr; }
+                    let phoneStr = (item.phone || "-").toString().replace(/'/g, "");
+                    if (phoneStr !== "-" && !phoneStr.startsWith('0') && phoneStr.length >= 9) { phoneStr = "0" + phoneStr; }
 
                     let recDisplay = item.recommendation || "-";
                     if (recDisplay.toString().startsWith("http")) {
                         recDisplay = `<a href="${recDisplay}" target="_blank" style="color:#007bff; text-decoration:none; font-weight:600;">📄 קו"ח</a>`;
                     } else {
+                        recDisplay = escapeHtml(recDisplay);
                         if (recDisplay.length > 10) recDisplay = recDisplay.substring(0, 10) + "...";
                     }
 
+                    // Use phoneStr safely in onclick
                     let archiveBtnTable = '';
                     if (isArchiveMode) {
                         archiveBtnTable = `<button class="action-btn desktop-action btn-rest" onclick="updateStatus('${phoneStr}', 'active')">♻️ שחזר</button>`;
                     } else {
-                        archiveBtnTable = `<button class="action-btn desktop-action btn-arch" onclick="updateStatus('${phoneStr}', 'archived')">📥 ארכיון</button>`;
+                        archiveBtnTable = `<button class="action-btn desktop-action btn-arch" onclick="updateStatus('${phoneStr}', 'archived')">📥 העבר לארכיון</button>`;
                     }
 
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${dateStr}</td>
-                        <td style="font-weight:700">${item.name || "ללא שם"}</td>
+                        <td style="font-weight:700">${safeName}</td>
                         <td><span class="tag tag-role">${role}</span></td>
                         <td>${city}</td>
-                        <td>${item.branch || "-"}</td>
+                        <td>${escapeHtml(item.branch || "-")}</td>
                         <td style="direction:ltr; text-align:right; font-family:monospace;">${phoneStr}</td>
                         <td style="text-align:center;"><span class="tag tag-score ${scoreClass}">${score}</span></td>
                         <td style="font-size:13px; color:#666;">${recDisplay}</td>
@@ -576,6 +597,9 @@
 
         function formatInterviewText(text) {
             if (!text || text.includes("לא נמצא")) return '<div style="color:#999; text-align:center; padding:20px;">לא נשמר תוכן לראיון זה.</div>';
+            
+            // Basic XSS prevention for the body content
+            // Note: We are trusting the API a bit here, but cleaning up common tags
             
             let parts = text.split(/Question:|Q:/g);
             let html = "";
@@ -609,8 +633,8 @@
 
                 html += `
                     <div class="interview-qa">
-                        <span class="interview-q">ש: ${qText.trim()}</span>
-                        <span class="interview-a">${answerText}</span>
+                        <span class="interview-q">ש: ${escapeHtml(qText.trim())}</span>
+                        <span class="interview-a">${escapeHtml(answerText)}</span>
                         ${metaDataHtml}
                     </div>
                 `;
@@ -632,21 +656,21 @@
             document.getElementById('m-name').innerText = (item.name || "מועמד") + ` (ציון התאמה: ${score}/10)`;
 
             let recLink = item.recommendation;
-            let recDisplay = (recLink && recLink.startsWith('http')) ? `<a href="${recLink}" target="_blank" style="color:#007bff; text-decoration:none;">📄 צפייה בקו"ח</a>` : 'אין קו"ח';
+            let recDisplay = (recLink && recLink.toString().startsWith('http')) ? `<a href="${recLink}" target="_blank" style="color:#007bff; text-decoration:none;">📄 צפייה בקו"ח</a>` : 'אין קו"ח';
             
             let dateDisplay = '-';
-            try { dateDisplay = new Date(item.date).toLocaleDateString('he-IL'); } catch(e){}
+            try { if(item.date) dateDisplay = new Date(item.date).toLocaleDateString('he-IL'); } catch(e){}
 
             document.getElementById('m-meta-grid').innerHTML = `
                 <div class="meta-item"><span class="meta-icon">📅</span> ${dateDisplay}</div>
-                <div class="meta-item"><span class="meta-icon">🏢</span> ${item.branch || '-'}</div>
-                <div class="meta-item"><span class="meta-icon">📍</span> ${item.city || '-'}</div>
+                <div class="meta-item"><span class="meta-icon">🏢</span> ${escapeHtml(item.branch || '-')}</div>
+                <div class="meta-item"><span class="meta-icon">📍</span> ${escapeHtml(item.city || '-')}</div>
                 <div class="meta-item"><span class="meta-icon">📎</span> ${recDisplay}</div>
             `;
 
-            document.getElementById('m-general').innerHTML = item.general || "לא התקבל סיכום ממערכת ה-AI.";
-            document.getElementById('m-strengths').innerHTML = item.strengths || "-";
-            document.getElementById('m-weaknesses').innerHTML = item.weaknesses || "-";
+            document.getElementById('m-general').innerText = item.general || "לא התקבל סיכום ממערכת ה-AI.";
+            document.getElementById('m-strengths').innerText = item.strengths || "-";
+            document.getElementById('m-weaknesses').innerText = item.weaknesses || "-";
             document.getElementById('m-full-interview').innerHTML = formatInterviewText(item.fullInterview);
 
             let phoneStr = (item.phone || "").toString().replace(/'/g,"");
