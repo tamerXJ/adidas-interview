@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 const API_KEY = process.env.API_KEY;
 const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "1";
 
 let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
