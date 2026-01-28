@@ -79,12 +79,15 @@
         .stat-title { color: #777; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
         .stat-value { font-size: 24px; font-weight: 800; color: #000; margin-top: 5px; }
 
-        /* === טבלה === */
+        /* === טבלה (עיצוב מעודכן - מרכוז) === */
         .table-wrapper { background: #fff; border-radius: 12px; overflow-x: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border: 1px solid #eee; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; min-width: 100%; }
         thead { background: #000; color: #fff; }
-        th { text-align: right; padding: 12px 8px; font-size: 13px; font-weight: 600; white-space: nowrap; }
-        td { padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 13px; color: #333; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        /* תיקון: מרכוז הטקסט בטבלה במחשב */
+        th { text-align: center; padding: 12px 8px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+        td { text-align: center; padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 13px; color: #333; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
         tbody tr:hover { background-color: #f9f9f9; }
 
         /* עיצוב כפתורים בטבלה */
@@ -100,11 +103,14 @@
 
         /* === התאמות למובייל === */
         @media (max-width: 768px) {
+            /* חזרה ליישור ימין בטלפון (אופציונלי, אם תרצה) או השארת מרכוז */
+            /* th, td { text-align: right; } - כרגע נשאיר מרוכז */
+
             /* הסתרת עמודות בטלפון */
             th:nth-child(1), td:nth-child(1), /* תאריך */
             th:nth-child(4), td:nth-child(4), /* עיר */
             th:nth-child(5), td:nth-child(5), /* סניף */
-            th:nth-child(8), td:nth-child(8)  /* המלצה */
+            th:nth-child(8), td:nth-child(8)  /* CV/המלצה */
             { display: none; }
             
             /* הסתרת כפתור ארכיון בטבלה בטלפון (יופיע רק במודל) */
@@ -172,11 +178,11 @@
         /* כפתורי ארכיון במודל */
         .modal-actions-btn { font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; display: flex; align-items: center; gap: 5px; }
 
-        /* ריווח כותרות במודל - תיקון למחשב */
+        /* ריווח כותרות במודל */
         .detail-row { margin-bottom: 20px; }
         .detail-label { 
             font-weight: 800; font-size: 13px; color: #444; display: block; 
-            margin-bottom: 12px; /* הוספת מרווח אסתטי מהבוקס */
+            margin-bottom: 12px; 
             text-transform: uppercase; 
         }
 
@@ -265,8 +271,7 @@
                             <th>סניף</th>
                             <th>טלפון</th>
                             <th style="text-align:center;">ציון</th>
-                            <th>המלצה</th>
-                            <th>פעולות</th>
+                            <th>CV/המלצה</th> <th>פעולות</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
@@ -506,7 +511,6 @@
                         if (recDisplay.length > 10) recDisplay = recDisplay.substring(0, 10) + "...";
                     }
 
-                    // בניית כפתור ארכיון לטבלה (דסקטופ בלבד)
                     let archiveBtnTable = '';
                     if (isArchiveMode) {
                         archiveBtnTable = `<button class="action-btn desktop-action btn-rest" onclick="updateStatus('${phoneStr}', 'active')">♻️ שחזר</button>`;
