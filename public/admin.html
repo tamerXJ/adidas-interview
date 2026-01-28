@@ -71,7 +71,14 @@
         .container { padding: 40px; max-width: 1400px; margin: 0 auto; width: 100%; flex: 1; overflow-y: auto; }
 
         .filter-bar { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
-        .filter-select { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; flex: 1; min-width: 150px; cursor: pointer; background-color: #fff; }
+        
+        /* === תיקון רוחב סלקט במחשב === */
+        .filter-select { 
+            padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; 
+            width: 280px; /* רוחב קבוע למחשב */
+            cursor: pointer; background-color: #fff; 
+        }
+        
         .export-btn { background: #27ae60; color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; transition: 0.2s; white-space: nowrap; }
 
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
@@ -79,22 +86,17 @@
         .stat-title { color: #777; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
         .stat-value { font-size: 24px; font-weight: 800; color: #000; margin-top: 5px; }
 
-        /* === טבלה (עיצוב מעודכן - מרכוז) === */
+        /* === טבלה (מרכוז) === */
         .table-wrapper { background: #fff; border-radius: 12px; overflow-x: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border: 1px solid #eee; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; min-width: 100%; }
         thead { background: #000; color: #fff; }
-        
-        /* תיקון: מרכוז הטקסט בטבלה במחשב */
         th { text-align: center; padding: 12px 8px; font-size: 13px; font-weight: 600; white-space: nowrap; }
         td { text-align: center; padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 13px; color: #333; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
         tbody tr:hover { background-color: #f9f9f9; }
 
-        /* עיצוב כפתורים בטבלה */
         .action-btn { background: #fff; color: #000; border: 1px solid #000; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; text-align: center; display: inline-block; }
         .action-btn:hover { background: #000; color: #fff; }
 
-        /* מחלקות ייעודיות לכפתורי שחזור וארכיון בטבלה (דסקטופ) */
         .desktop-action { margin-right: 5px; }
         .btn-arch { color: #a76d05; border-color: #a76d05; }
         .btn-arch:hover { background: #a76d05; color: #fff; }
@@ -103,20 +105,17 @@
 
         /* === התאמות למובייל === */
         @media (max-width: 768px) {
-            /* חזרה ליישור ימין בטלפון (אופציונלי, אם תרצה) או השארת מרכוז */
-            /* th, td { text-align: right; } - כרגע נשאיר מרוכז */
-
-            /* הסתרת עמודות בטלפון */
             th:nth-child(1), td:nth-child(1), /* תאריך */
             th:nth-child(4), td:nth-child(4), /* עיר */
             th:nth-child(5), td:nth-child(5), /* סניף */
-            th:nth-child(8), td:nth-child(8)  /* CV/המלצה */
+            th:nth-child(8), td:nth-child(8)  /* CV */
             { display: none; }
             
-            /* הסתרת כפתור ארכיון בטבלה בטלפון (יופיע רק במודל) */
             .desktop-action { display: none; }
-            
             th, td { padding: 10px 4px; font-size: 12px; }
+
+            /* שחזור רוחב סלקט ל-100% במובייל כדי שלא ישתנה */
+            .filter-select { width: 100%; flex: 1; }
         }
 
         .tag { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 4px; display: inline-block; }
@@ -175,10 +174,8 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        /* כפתורי ארכיון במודל */
         .modal-actions-btn { font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; display: flex; align-items: center; gap: 5px; }
 
-        /* ריווח כותרות במודל */
         .detail-row { margin-bottom: 20px; }
         .detail-label { 
             font-weight: 800; font-size: 13px; color: #444; display: block; 
@@ -271,7 +268,8 @@
                             <th>סניף</th>
                             <th>טלפון</th>
                             <th style="text-align:center;">ציון</th>
-                            <th>CV/המלצה</th> <th>פעולות</th>
+                            <th>CV/המלצה</th>
+                            <th>פעולות</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
