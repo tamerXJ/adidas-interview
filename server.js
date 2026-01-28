@@ -197,11 +197,16 @@ app.post('/api/submit-interview', async (req, res) => {
 
         console.log(`🤖 ציון סופי: ${analysis.score}`);
 
+       // === השינוי כאן: הוספת fullInterview ===
         if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
             await fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...candidate, ...analysis })
+                body: JSON.stringify({ 
+                    ...candidate, 
+                    ...analysis,
+                    fullInterview: answersText // שולח את כל המלל של השאלות והתשובות
+                })
             });
             console.log("✅ נשמר באקסל");
         }

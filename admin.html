@@ -101,17 +101,99 @@
         .score-average { background: #ffc107; color: #212529; } 
         .score-poor { background: #dc3545; }      
 
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
-        .modal { background: #fff; width: 90%; max-width: 650px; padding: 35px; border-radius: 16px; max-height: 85vh; overflow-y: auto; text-align: right; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-        .modal-close { position: absolute; top: 20px; left: 20px; font-size: 28px; cursor: pointer; color: #aaa; transition: 0.2s; }
+        /* === Modal Styles (Fixed for Mobile) === */
+        .modal-overlay { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.6); 
+            z-index: 1000; 
+            justify-content: center; 
+            align-items: center; /* Center Vertically and Horizontally */
+            backdrop-filter: blur(2px);
+            padding: 10px; /* Add padding for small screens */
+        }
+        
+        .modal { 
+            background: #fff; 
+            width: 100%; 
+            max-width: 700px; 
+            /* הסרתי גובה קבוע, במקום זה הגבלת גובה וגלילה */
+            max-height: 90vh; 
+            display: flex;
+            flex-direction: column;
+            border-radius: 16px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2); 
+            position: relative;
+        }
+
+        .modal-header {
+            padding: 25px 25px 15px 25px;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .modal-body {
+            padding: 25px;
+            overflow-y: auto; /* הגלילה רק בתוך התוכן */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .modal-close { 
+            position: absolute; 
+            top: 15px; 
+            left: 15px; 
+            font-size: 28px; 
+            cursor: pointer; 
+            color: #aaa; 
+            transition: 0.2s; 
+            line-height: 1;
+            z-index: 10;
+        }
         .modal-close:hover { color: #000; }
+
         .detail-row { margin-bottom: 20px; }
         .detail-label { font-weight: 800; font-size: 13px; color: #444; display: block; margin-bottom: 8px; text-transform: uppercase; }
-        /* הוספתי סגנון לרשימות בתוך המודל */
         .detail-text { font-size: 15px; line-height: 1.6; color: #000; white-space: pre-wrap; background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
         .detail-text ul, .detail-text ol { margin-right: 20px; padding: 0; }
         .detail-text li { margin-bottom: 5px; }
         
+        /* Tabs Styles */
+        .modal-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #f0f0f0;
+            padding: 5px;
+            border-radius: 8px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            border-radius: 6px;
+            transition: 0.2s;
+        }
+        .tab-btn.active {
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            color: #000;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Q&A Style */
+        .qa-item { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .qa-q { font-weight: 700; color: #000; margin-bottom: 5px; }
+        .qa-a { color: #555; }
+
         .actions-cell { display: flex; gap: 5px; }
         .action-btn { background: #fff; color: #000; border: 1px solid #000; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; text-align: center; flex: 1; }
         .action-btn:hover { background: #000; color: #fff; }
@@ -223,18 +305,35 @@
     <div class="modal-overlay" id="modal-view">
         <div class="modal">
             <span class="modal-close" onclick="closeModal()">&times;</span>
-            <h2 id="m-name" style="margin-top:0; font-size:24px; border-bottom:3px solid #000; padding-bottom:15px; margin-bottom:25px;">פרטי מועמד</h2>
-            <div class="detail-row">
-                <span class="detail-label">📌 סיכום AI כללי:</span>
-                <div id="m-general" class="detail-text"></div>
+            <div class="modal-header">
+                <h2 id="m-name" style="margin:0; font-size:22px; margin-bottom:15px;">פרטי מועמד</h2>
+                
+                <div class="modal-tabs">
+                    <button class="tab-btn active" onclick="switchTab('summary')" id="tab-btn-summary">📊 סיכום AI</button>
+                    <button class="tab-btn" onclick="switchTab('transcript')" id="tab-btn-transcript">📝 ראיון מלא</button>
+                </div>
             </div>
-            <div class="detail-row">
-                <span class="detail-label" style="color:#1e7e34;">✅ חוזקות בולטות:</span>
-                <div id="m-strengths" class="detail-text" style="color:#155724; background:#d4edda; border-color:#c3e6cb;"></div>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label" style="color:#dc3545;">⚠️ נקודות לשיפור / חולשות:</span>
-                <div id="m-weaknesses" class="detail-text" style="color:#721c24; background:#f8d7da; border-color:#f5c6cb;"></div>
+
+            <div class="modal-body">
+                <div id="tab-content-summary" class="tab-content active">
+                    <div class="detail-row">
+                        <span class="detail-label">📌 סיכום AI כללי:</span>
+                        <div id="m-general" class="detail-text"></div>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label" style="color:#1e7e34;">✅ חוזקות בולטות:</span>
+                        <div id="m-strengths" class="detail-text" style="color:#155724; background:#d4edda; border-color:#c3e6cb;"></div>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label" style="color:#dc3545;">⚠️ נקודות לשיפור / חולשות:</span>
+                        <div id="m-weaknesses" class="detail-text" style="color:#721c24; background:#f8d7da; border-color:#f5c6cb;"></div>
+                    </div>
+                </div>
+
+                <div id="tab-content-transcript" class="tab-content">
+                    <div id="m-full-interview" class="detail-text" style="white-space: pre-wrap;">
+                        </div>
+                </div>
             </div>
         </div>
     </div>
@@ -489,7 +588,17 @@
             });
         }
 
-        // === תיקון כאן: שימוש ב-innerHTML כדי להציג את התגיות כעיצוב ===
+        // === לוגיקת טאבים ===
+        function switchTab(tabName) {
+            // הסרת מחלקה active מכל הכפתורים והתוכן
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // הוספת active לטאב הנבחר
+            document.getElementById(`tab-btn-${tabName}`).classList.add('active');
+            document.getElementById(`tab-content-${tabName}`).classList.add('active');
+        }
+
         function openModal(index) {
             const item = filteredData[index];
             if (!item) return;
@@ -497,10 +606,19 @@
             const score = parseInt(item.score) || 0;
             document.getElementById('m-name').innerText = (item.name || "מועמד") + ` (ציון התאמה: ${score}/10)`;
             
-            // כאן השינוי החשוב:
+            // מילוי סיכום
             document.getElementById('m-general').innerHTML = item.general || "לא התקבל סיכום ממערכת ה-AI.";
             document.getElementById('m-strengths').innerHTML = item.strengths || "-";
             document.getElementById('m-weaknesses').innerHTML = item.weaknesses || "-";
+            
+            // מילוי ראיון מלא
+            let interviewText = item.fullInterview || "לא נמצא תוכן ראיון מלא.";
+            // עיצוב קל: הפיכת Q: ו-A: למודגש
+            interviewText = interviewText.replace(/Q:/g, "<b>ש:</b>").replace(/A:/g, "<br><b>ת:</b>").replace(/Question:/g, "<b>ש:</b>").replace(/Answer:/g, "<br><b>ת:</b>");
+            document.getElementById('m-full-interview').innerHTML = interviewText;
+
+            // איפוס לטאב הראשון
+            switchTab('summary');
             
             document.getElementById('modal-view').style.display = 'flex';
         }
