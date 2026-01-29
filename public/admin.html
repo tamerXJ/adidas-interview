@@ -2,701 +2,800 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Adidas Admin Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ניהול מועמדים - Admin Dashboard</title>
     <style>
-        :root { --brand-black: #000; --brand-white: #fff; --bg-gray: #f5f5f5; --accent: #2ecc71; }
-        
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 0; 
-            background-color: var(--bg-gray); 
-            color: #333; 
-            cursor: default; 
-            user-select: none;
-            -webkit-user-select: none;
-            min-height: 100vh;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .results-count {
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        th {
+            padding: 15px;
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #f0f0f0;
+            color: #555;
+        }
+
+        tbody tr:hover {
+            background: #f8f9ff;
+        }
+
+        .score {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: inline-block;
+            min-width: 40px;
+        }
+
+        .score-high { background: #d4edda; color: #155724; }
+        .score-medium { background: #fff3cd; color: #856404; }
+        .score-low { background: #f8d7da; color: #721c24; }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .badge-yes { background: #d4edda; color: #155724; }
+        .badge-no { background: #f8d7da; color: #721c24; }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 0 5px;
+        }
+
+        .btn-view {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #5568d3;
+        }
+
+        .btn-archive {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-restore {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-archive:hover,
+        .btn-restore:hover {
+            opacity: 0.8;
+        }
+
+        .archived-row {
+            opacity: 0.5;
+            background: #f8f8f8;
+        }
+
+        /* Mobile Styles */
+        @media (max-width: 768px) {
+            .hide-mobile {
+                display: none !important;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 14px;
+            }
+
+            th, td {
+                padding: 10px 5px;
+            }
+
+            .btn {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
         }
 
-        body.modal-open { overflow: hidden; position: fixed; width: 100%; height: 100%; }
-
-        #login-bg-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 998;
-            background-image: url('https://images.microcms-assets.io/assets/1775a3633c8b428d9f011c6a758a8a5c/c0bb4fc727e24685be2532ae31ea82ea/A.jpg?w=1500&fm=webp');
-            background-repeat: no-repeat; background-position: center center; background-size: cover;
-        }
-        #login-overlay {
-             position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 999;
-             background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px);
-             display: flex; justify-content: center; align-items: center; flex-direction: column;
-        }
-
-        input, textarea { cursor: text; user-select: text; -webkit-user-select: text; }
-        * { box-sizing: border-box; outline: none; }
-        
-        .login-box { background: #fff; padding: 40px; border-radius: 12px; text-align: center; width: 90%; max-width: 380px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .login-logo { width: 80px; margin-bottom: 20px; opacity: 0.9; }
-        .password-wrapper { position: relative; width: 100%; margin-top: 15px; }
-        .login-box input { width: 100%; padding: 14px; padding-left: 45px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; transition: 0.3s; }
-        .login-box input:focus { border-color: #000; }
-        
-        .toggle-password { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; opacity: 0.4; transition: 0.3s; display: flex; align-items: center; }
-        .toggle-password:hover { opacity: 0.8; }
-        .toggle-password svg { width: 20px; height: 20px; }
-        
-        .login-box button { width: 100%; padding: 14px; margin-top: 20px; background: #000; color: #fff; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: 700; transition: 0.2s; letter-spacing: 0.5px; }
-        .login-box button:hover { background: #333; }
-
-        /* App Layout */
-        #app-content { flex: 1; display: none; flex-direction: column; }
-        .navbar { background: #fff; padding: 15px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #000; flex-shrink: 0; }
-        .logo { font-size: 18px; font-weight: 900; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
-        .logo img { width: 35px; height: auto; }
-        
-        .nav-actions { display: flex; gap: 8px; align-items: center; }
-        .nav-btn { background: #f4f4f4; border: 1px solid #eee; padding: 8px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; display: flex; align-items: center; gap: 4px; transition: 0.2s; color: #333; }
-        
-        @media (max-width: 600px) {
-            .btn-text { display: none; } 
-            .logo span { display: none; } 
-            .logo img { width: 45px; }
-            .container { padding: 15px !important; }
-        }
-
-        .archive-mode-btn { background: #333; color: #fff; border: none; }
-        .active-archive { background: #ffc107; color: #000; border-color: #e0a800; }
-
-        .container { padding: 40px; max-width: 1400px; margin: 0 auto; width: 100%; flex: 1; overflow-y: auto; }
-
-        .filter-bar { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
-        
-        .filter-select { 
-            padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; 
-            width: 280px; 
-            cursor: pointer; background-color: #fff; 
-        }
-        
-        .rec-select { width: 150px; }
-
-        .filter-input {
-            padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;
-            width: 220px; 
-            background-color: #fff;
-        }
-
-        .export-btn { background: #27ae60; color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; transition: 0.2s; white-space: nowrap; }
-
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .stat-card { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); text-align: right; border-right: 4px solid #000; }
-        .stat-title { color: #777; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
-        .stat-value { font-size: 24px; font-weight: 800; color: #000; margin-top: 5px; }
-
-        .table-wrapper { background: #fff; border-radius: 12px; overflow-x: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.05); border: 1px solid #eee; -webkit-overflow-scrolling: touch; }
-        table { width: 100%; border-collapse: collapse; min-width: 100%; }
-        thead { background: #000; color: #fff; }
-        th { text-align: center; padding: 12px 8px; font-size: 13px; font-weight: 600; white-space: nowrap; }
-        td { text-align: center; padding: 10px 8px; border-bottom: 1px solid #eee; font-size: 13px; color: #333; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        tbody tr:hover { background-color: #f9f9f9; }
-
-        .action-btn { background: #fff; color: #000; border: 1px solid #000; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; transition: 0.2s; text-align: center; display: inline-block; }
-        .action-btn:hover { background: #000; color: #fff; }
-
-        .desktop-action { margin-right: 5px; }
-        .btn-arch { color: #a76d05; border-color: #a76d05; }
-        .btn-arch:hover { background: #a76d05; color: #fff; }
-        .btn-rest { color: #1e7e34; border-color: #1e7e34; }
-        .btn-rest:hover { background: #1e7e34; color: #fff; }
-
-        /* === התאמות למובייל === */
-        @media (max-width: 768px) {
-            th:nth-child(1), td:nth-child(1), /* תאריך */
-            th:nth-child(4), td:nth-child(4), /* עיר */
-            th:nth-child(5), td:nth-child(5), /* סניף */
-            th:nth-child(8), td:nth-child(8)  /* CV */
-            { display: none; }
-            
-            .desktop-action { display: none; }
-            .desktop-only { display: none !important; }
-
-            th, td { padding: 10px 4px; font-size: 12px; }
-            .filter-select { width: 100%; flex: 1; }
-            
-            .filter-input { width: 100%; flex: 1; }
-        }
-
-        .tag { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 4px; display: inline-block; }
-        .tag-role { background: #f0f0f0; color: #555; border: 1px solid #e0e0e0; }
-        .tag-score { color: #fff; min-width: 25px; text-align: center; display: block; margin: 0 auto; border-radius: 4px; padding: 2px 5px; }
-        .score-excellent { background: #1e7e34; } 
-        .score-good { background: #28a745; }      
-        .score-average { background: #ffc107; color: #212529; } 
-        .score-poor { background: #dc3545; }      
-
-        /* === מודל (Popup) === */
-        .modal-overlay { 
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            width: 100%; height: 100%; background: rgba(0,0,0,0.8); 
-            z-index: 9999; justify-content: center; align-items: flex-end; 
-            backdrop-filter: blur(4px); overflow: hidden; 
-        }
-        @media (min-width: 769px) { .modal-overlay { align-items: center; } }
-
-        .modal { 
-            background: #fff; width: 100%; max-width: 700px; height: 85vh; max-height: 85vh;
-            display: flex; flex-direction: column;
-            border-radius: 16px 16px 0 0; 
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.3); position: relative;
-            animation: slideUp 0.3s ease-out;
-        }
-        @media (min-width: 769px) { .modal { height: auto; max-height: 85vh; border-radius: 16px; } }
-        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
         .modal-header {
-            padding: 20px; border-bottom: 1px solid #eee; flex-shrink: 0; background: #fff; border-radius: 16px 16px 0 0;
-            display: flex; flex-direction: column; gap: 8px;
+            padding: 25px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
         }
-        .modal-top-row { display: flex; justify-content: space-between; align-items: center; }
 
-        .meta-grid { 
-            display: none; /* מוסתר כברירת מחדל למחשב */
-            grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; margin-bottom: 5px; 
+        .modal-header h2 {
+            margin-bottom: 10px;
         }
-        
+
+        .modal-meta {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .modal-meta-mobile {
+            display: none;
+        }
+
         @media (max-width: 768px) {
-            .meta-grid { display: grid; } /* מוצג רק במובייל */
+            .modal-meta-mobile {
+                display: block;
+            }
         }
 
-        .meta-item { 
-            background: #f8f9fa; padding: 8px; border-radius: 8px; font-size: 13px; color: #444; 
-            display: flex; align-items: center; gap: 8px; border: 1px solid #eee; font-weight: 500;
+        .modal-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
         }
-        .meta-icon { opacity: 0.7; font-size: 14px; }
+
+        .modal-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .modal-tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
 
         .modal-body {
-            padding: 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; 
-            overscroll-behavior: contain; background: #f9f9f9; flex: 1;
-            border-radius: 0 0 12px 12px;
+            padding: 25px;
+            overflow-y: auto;
+            flex: 1;
         }
 
-        .modal-close { font-size: 30px; cursor: pointer; color: #aaa; line-height: 0.8; padding: 5px; }
-        
-        .modal-tabs { display: flex; gap: 8px; background: #eee; padding: 4px; border-radius: 8px; margin-top: 10px; }
-        .tab-btn { flex: 1; padding: 10px; border: none; background: transparent; cursor: pointer; font-weight: 600; font-size: 13px; border-radius: 6px; color: #666; transition: 0.2s; }
-        .tab-btn.active { background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); color: #000; font-weight: 800; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        .modal-actions-btn { font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; display: flex; align-items: center; gap: 5px; }
-
-        .detail-row { margin-bottom: 20px; }
-        .detail-label { 
-            font-weight: 800; font-size: 13px; color: #444; display: block; 
-            margin-bottom: 12px; 
-            text-transform: uppercase; 
+        .modal-content {
+            display: none;
         }
 
-        .detail-text { font-size: 15px; line-height: 1.5; color: #333; white-space: pre-wrap; background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #eee; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-        .interview-qa { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-        .interview-q { font-weight: 700; color: #000; font-size: 15px; margin-bottom: 6px; display: block; }
-        .interview-a { color: #444; font-size: 15px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #e0e0e0; display: block; }
-        .interview-meta { margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; }
-        .meta-badge { font-size: 11px; background: #f0f0f0; padding: 3px 8px; border-radius: 10px; color: #777; border: 1px solid #ddd; }
+        .modal-content.active {
+            display: block;
+        }
 
-        .footer-credit { text-align: center; padding: 20px; font-size: 11px; color: #999; margin-top: auto; border-top: 1px solid #eee; background: #fff; }
+        .strength-box, .weakness-box {
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .strength-box {
+            background: #d4edda;
+            border-right: 4px solid #28a745;
+        }
+
+        .weakness-box {
+            background: #f8d7da;
+            border-right: 4px solid #dc3545;
+        }
+
+        .strength-box h3, .weakness-box h3 {
+            margin-bottom: 10px;
+        }
+
+        .strength-box ul, .weakness-box ul {
+            margin-right: 20px;
+        }
+
+        .strength-box li, .weakness-box li {
+            margin-bottom: 8px;
+        }
+
+        .transcript {
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+
+        .modal-footer {
+            padding: 20px 25px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .close-modal {
+            background: #6c757d;
+            color: white;
+        }
+
+        .close-modal:hover {
+            background: #5a6268;
+        }
+
+        /* Login Overlay */
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .login-box h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .error-text {
+            color: #e74c3c;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-
-    <div id="login-bg-container"></div>
-    <div id="login-overlay">
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay">
         <div class="login-box">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Adidas_2022_logo.svg" alt="Adidas" class="login-logo">
-            <h2 style="margin-top:0; font-size: 22px;">כניסת מנהלים</h2>
-            <div class="password-wrapper">
-                <input type="password" id="pass-input" placeholder="סיסמה">
-                <span class="toggle-password" onclick="togglePassword()" id="eye-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.55 18.55 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                </span>
-            </div>
-            <button onclick="attemptLogin()">כניסה למערכת</button>
-            <p id="login-msg" style="color:#dc3545; font-size:13px; margin-top:15px; font-weight:500; min-height:20px;"></p>
+            <h2>🔐 כניסת מנהל</h2>
+            <input type="password" id="passwordInput" placeholder="הזן סיסמה">
+            <button onclick="login()">כניסה</button>
+            <div id="loginError" class="error-text" style="display:none;">סיסמה שגויה</div>
         </div>
     </div>
 
-    <div id="app-content">
-        <div class="navbar">
-            <div class="logo">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/1/1b/Adidas_2022_logo.svg" alt="Adidas">
-                <span>RECRUIT</span>
+    <!-- Main Dashboard -->
+    <div id="dashboard" style="display:none;">
+        <div class="header">
+            <h1>🎯 ניהול מועמדים</h1>
+            <p>ניהול וסינון מועמדים למשרות</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <label>סניף</label>
+                <select id="branchFilter" onchange="applyFilters()">
+                    <option value="">כל הסניפים</option>
+                </select>
             </div>
-            <div class="nav-actions">
-                <button class="nav-btn archive-mode-btn" id="archive-toggle-btn" onclick="toggleArchiveMode()">
-                    <span>📂</span> <span class="btn-text" id="archive-btn-text">ארכיון</span>
-                </button>
-                <button class="nav-btn" onclick="refreshData()">
-                    <span>↻</span> <span class="btn-text">רענן</span>
-                </button>
-                <button class="nav-btn logout-btn" onclick="logout()">
-                    <span>➜</span> <span class="btn-text">יציאה</span>
-                </button>
+
+            <div class="filter-group hide-mobile">
+                <label>המלצה</label>
+                <select id="recommendationFilter" onchange="applyFilters()">
+                    <option value="">הכל</option>
+                    <option value="Yes">כן</option>
+                    <option value="No">לא</option>
+                </select>
+            </div>
+
+            <div class="filter-group" style="flex: 2;">
+                <label>חיפוש חכם (שם או טלפון)</label>
+                <input type="text" id="searchInput" placeholder="הקלד שם או מספר טלפון..." oninput="debouncedFilter()">
             </div>
         </div>
 
-        <div class="container">
-            <div class="filter-bar">
-                <input type="text" id="search-input" class="filter-input" placeholder="🔍 חיפוש שם או טלפון..." oninput="applyFilter()">
+        <div class="results-count" id="resultsCount"></div>
 
-                <label style="font-weight:700; font-size:14px; margin-left:10px; margin-right:15px;">סניף:</label>
-                <select id="branch-filter" class="filter-select" onchange="applyFilter()">
-                    <option value="all">הצג את כל הסניפים</option>
-                </select>
-
-                <label class="desktop-only" style="font-weight:700; font-size:14px; margin-left:10px; margin-right:15px;">המלצה:</label>
-                <select id="rec-filter" class="filter-select rec-select desktop-only" onchange="applyFilter()">
-                    <option value="all">הכל</option>
-                    <option value="כן">ממליץ (כן)</option>
-                    <option value="לא">לא ממליץ (לא)</option>
-                </select>
-
-                <button class="export-btn" onclick="exportToExcel()">
-                    <span>⬇</span> <span class="btn-text">Excel</span>
-                </button>
+        <!-- Table -->
+        <div class="table-container">
+            <div id="loadingDiv" class="loading">
+                <div class="spinner"></div>
+                <p>טוען נתונים...</p>
             </div>
 
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-title" id="stat-title-1">מועמדים פעילים</div>
-                    <div class="stat-value" id="val-total">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-title">ציון ממוצע</div>
-                    <div class="stat-value" id="val-avg">0.0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-title" style="color: var(--accent);">חזקים (8+)</div>
-                    <div class="stat-value" id="val-top" style="color: var(--accent);">0</div>
-                </div>
-            </div>
-
-            <h2 id="table-title" style="margin-bottom:15px; font-size:18px; font-weight:800;">רשימת מועמדים</h2>
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>תאריך</th>
-                            <th>שם מלא</th>
-                            <th>תפקיד</th>
-                            <th>עיר</th>
-                            <th>סניף</th>
-                            <th>טלפון</th>
-                            <th style="text-align:center;">ציון</th>
-                            <th>CV/המלצה</th>
-                            <th>פעולות</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body">
-                        <tr><td colspan="9" style="text-align:center; padding:30px; color:#777;">טוען נתונים...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="footer-credit">
-            © 2024 Adidas Recruitment System. Developed by Tamer Massarwi.
+            <table id="candidatesTable" style="display:none;">
+                <thead>
+                    <tr>
+                        <th>תאריך</th>
+                        <th>שם</th>
+                        <th>תפקיד</th>
+                        <th class="hide-mobile">עיר</th>
+                        <th class="hide-mobile">סניף</th>
+                        <th>טלפון</th>
+                        <th>ציון</th>
+                        <th class="hide-mobile">קו"ח</th>
+                        <th class="hide-mobile">המלצה</th>
+                        <th>פעולות</th>
+                    </tr>
+                </thead>
+                <tbody id="candidatesBody"></tbody>
+            </table>
         </div>
     </div>
 
-    <div class="modal-overlay" id="modal-view">
-        <div class="modal">
+    <!-- Modal -->
+    <div id="modalOverlay" class="modal-overlay" onclick="closeModalOnOutside(event)">
+        <div class="modal" onclick="event.stopPropagation()">
             <div class="modal-header">
-                <div class="modal-top-row">
-                    <h2 id="m-name" style="margin:0; font-size:20px;">פרטי מועמד</h2>
-                    <span class="modal-close" onclick="closeModal()">&times;</span>
-                </div>
-                
-                <div id="m-meta-grid" class="meta-grid"></div>
+                <h2 id="modalName"></h2>
+                <div class="modal-meta" id="modalMetaDesktop"></div>
+                <div class="modal-meta-mobile" id="modalMetaMobile"></div>
+            </div>
 
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
-                    <div id="modal-actions"></div>
-                </div>
-
-                <div class="modal-tabs">
-                    <button class="tab-btn active" onclick="switchTab('summary')" id="tab-btn-summary">📊 סיכום AI</button>
-                    <button class="tab-btn" onclick="switchTab('transcript')" id="tab-btn-transcript">📝 ראיון מלא</button>
-                </div>
+            <div class="modal-tabs">
+                <button class="modal-tab active" onclick="showTab('summary')">סיכום</button>
+                <button class="modal-tab" onclick="showTab('strengths')">חוזקות</button>
+                <button class="modal-tab" onclick="showTab('weaknesses')">חולשות</button>
+                <button class="modal-tab" onclick="showTab('transcript')">ראיון מלא</button>
             </div>
 
             <div class="modal-body">
-                <div id="tab-content-summary" class="tab-content active">
-                    <div class="detail-row">
-                        <span class="detail-label">📌 סיכום AI כללי:</span>
-                        <div id="m-general" class="detail-text"></div>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label" style="color:#1e7e34;">✅ חוזקות בולטות:</span>
-                        <div id="m-strengths" class="detail-text" style="color:#155724; background:#d4edda; border-color:#c3e6cb;"></div>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label" style="color:#dc3545;">⚠️ נקודות לשיפור / חולשות:</span>
-                        <div id="m-weaknesses" class="detail-text" style="color:#721c24; background:#f8d7da; border-color:#f5c6cb;"></div>
-                    </div>
-                </div>
+                <div id="tab-summary" class="modal-content active"></div>
+                <div id="tab-strengths" class="modal-content"></div>
+                <div id="tab-weaknesses" class="modal-content"></div>
+                <div id="tab-transcript" class="modal-content"></div>
+            </div>
 
-                <div id="tab-content-transcript" class="tab-content">
-                    <div id="m-full-interview"></div>
-                </div>
+            <div class="modal-footer">
+                <button class="btn close-modal" onclick="closeModal()">סגור</button>
+                <button id="modalArchiveBtn" class="btn" onclick="toggleStatusFromModal()"></button>
             </div>
         </div>
     </div>
 
     <script>
-        let fullData = [];
-        let filteredData = [];
-        let currentPass = "";
-        let isArchiveMode = false; 
-        let scrollPosition = 0; 
+        let adminPassword = '';
+        let allCandidates = [];
+        let filteredCandidates = [];
+        let currentCandidate = null;
+        let scrollPosition = 0;
 
-        document.getElementById('pass-input').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') attemptLogin();
+        // Login
+        function login() {
+            const password = document.getElementById('passwordInput').value;
+            fetch(`/api/admin/candidates?password=${encodeURIComponent(password)}`)
+                .then(res => {
+                    if (!res.ok) throw new Error('Invalid password');
+                    return res.json();
+                })
+                .then(data => {
+                    adminPassword = password;
+                    sessionStorage.setItem('adminPassword', password);
+                    document.getElementById('loginOverlay').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                    loadCandidates();
+                })
+                .catch(err => {
+                    document.getElementById('loginError').style.display = 'block';
+                });
+        }
+
+        // Check session
+        window.addEventListener('load', () => {
+            const savedPassword = sessionStorage.getItem('adminPassword');
+            if (savedPassword) {
+                document.getElementById('passwordInput').value = savedPassword;
+                login();
+            }
         });
 
-        function togglePassword() {
-            const input = document.getElementById('pass-input');
-            const btn = document.getElementById('eye-btn');
-            if (input.type === "password") {
-                input.type = "text";
-                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
-            } else {
-                input.type = "password";
-                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.55 18.55 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
-            }
-        }
-
-        async function attemptLogin() {
-            const passInput = document.getElementById('pass-input');
-            const pass = passInput.value;
-            if (!pass) {
-                 document.getElementById('login-msg').innerText = "נא להזין סיסמה";
-                 return;
-            }
-            document.getElementById('login-msg').innerText = "מתחבר...";
-            currentPass = pass;
-            await fetchData();
-        }
-
-        function logout() {
-            currentPass = ""; fullData = []; filteredData = []; isArchiveMode = false;
-            updateArchiveUI();
-            document.getElementById('pass-input').value = "";
-            document.getElementById('login-msg').innerText = "";
-            document.getElementById('app-content').style.display = 'none';
-            document.getElementById('login-bg-container').style.display = 'block';
-            document.getElementById('login-overlay').style.display = 'flex';
-        }
-
-        function toggleArchiveMode() {
-            isArchiveMode = !isArchiveMode;
-            updateArchiveUI();
-            applyFilter(); 
-        }
-
-        function updateArchiveUI() {
-            const btn = document.getElementById('archive-toggle-btn');
-            const txt = document.getElementById('archive-btn-text');
-            const tableTitle = document.getElementById('table-title');
-            const statTitle = document.getElementById('stat-title-1');
-
-            if (isArchiveMode) {
-                btn.classList.add('active-archive');
-                txt.innerText = "חזרה לפעילים"; tableTitle.innerText = "ארכיון"; statTitle.innerText = "בארכיון";
-            } else {
-                btn.classList.remove('active-archive');
-                txt.innerText = "ארכיון"; tableTitle.innerText = "רשימת מועמדים"; statTitle.innerText = "פעילים";
-            }
-        }
-
-        async function refreshData() {
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:30px; color:#777;"><span style="display:inline-block; animation: spin 1s linear infinite;">↻</span> מרענן...</td></tr>';
-            await fetchData();
-        }
-
-        async function fetchData() {
+        // Load Candidates
+        async function loadCandidates() {
             try {
-                const res = await fetch(`/api/admin/candidates?password=${currentPass}`);
-                if (res.status === 401) { document.getElementById('login-msg').innerText = "סיסמה שגויה, נסה שוב."; return; }
-                if (!res.ok) throw new Error('Network response was not ok');
-                const data = await res.json();
-                fullData = data;
-                document.getElementById('login-bg-container').style.display = 'none';
-                document.getElementById('login-overlay').style.display = 'none';
-                document.getElementById('app-content').style.display = 'flex';
-                document.body.classList.remove('modal-open');
-                document.body.style.position = '';
-                populateBranchFilter(); applyFilter();
-            } catch (e) { document.getElementById('login-msg').innerText = "שגיאת תקשורת עם השרת."; }
-        }
-
-        async function updateStatus(phone, newStatus) {
-            closeModal(); 
-            if (!confirm(newStatus === 'archived' ? "להעביר לארכיון?" : "לשחזר לרשימה הפעילה?")) return;
-            try {
-                const item = fullData.find(i => (i.phone || "").replace("'","") == phone);
-                if (item) item.status = newStatus;
-                applyFilter();
-                const res = await fetch('/api/admin/update-status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: currentPass, phone: phone, status: newStatus })
-                });
-                if (!res.ok) { alert("שגיאה בעדכון הסטטוס"); await refreshData(); }
-            } catch (e) { alert("תקלת תקשורת"); await refreshData(); }
-        }
-
-        function populateBranchFilter() {
-            const select = document.getElementById('branch-filter');
-            const currentVal = select.value;
-            select.innerHTML = '<option value="all">הצג את כל הסניפים</option>';
-            const branches = [...new Set(fullData.map(item => item.branch))].filter(b => b && b.trim() !== "").sort();
-            branches.forEach(branch => { const opt = document.createElement('option'); opt.value = branch; opt.innerText = branch; select.appendChild(opt); });
-            if (branches.includes(currentVal)) { select.value = currentVal; }
-        }
-
-        // === תיקון הלוגיקה בסינון ===
-        function applyFilter() {
-            const selectedBranch = document.getElementById('branch-filter').value;
-            const selectedRec = document.getElementById('rec-filter') ? document.getElementById('rec-filter').value : 'all';
-            const searchText = document.getElementById('search-input').value.trim().toLowerCase();
-
-            let dataByStatus = fullData.filter(item => {
-                const status = item.status || "active";
-                return isArchiveMode ? status === "archived" : status === "active";
-            });
-
-            if (selectedBranch !== 'all') {
-                dataByStatus = dataByStatus.filter(item => item.branch === selectedBranch);
-            }
-
-            if (selectedRec !== 'all') {
-                dataByStatus = dataByStatus.filter(item => {
-                    return item.recommendation && item.recommendation.toString().includes(selectedRec);
-                });
-            }
-
-            if (searchText !== "") {
-                dataByStatus = dataByStatus.filter(item => {
-                    const name = (item.name || "").toString().toLowerCase();
-                    const phone = (item.phone || "").toString().replace(/\D/g, ""); 
-                    const searchPhone = searchText.replace(/\D/g, "");
-                    
-                    // תיקון: אם המשתמש הקליד רק אותיות, searchPhone ריק
-                    // ולכן phone.includes("") תמיד מחזיר אמת לכולם.
-                    // התיקון: בודקים טלפון רק אם searchPhone מכיל ספרות
-                    const phoneMatch = searchPhone.length > 0 && phone.includes(searchPhone);
-                    
-                    return name.includes(searchText) || phoneMatch;
-                });
-            }
-
-            filteredData = dataByStatus;
-            renderData(filteredData);
-        }
-
-        function exportToExcel() {
-            if (filteredData.length === 0) { alert("אין נתונים להורדה"); return; }
-            let csvContent = "\uFEFF"; 
-            csvContent += "תאריך,שם מלא,תפקיד,סניף,עיר מגורים,טלפון,ציון,המלצה/לינק,סטטוס\n";
-            filteredData.forEach(row => {
-                const clean = (text) => (text || "").toString().replace(/,/g, " ").replace(/\n/g, " ");
-                let phone = clean(row.phone).replace(/'/g, "");
-                if (phone && !phone.startsWith('0') && phone.length > 8) phone = '0' + phone;
-                let rowStr = `${clean(row.date)},${clean(row.name)},${clean(row.role)},${clean(row.branch)},${clean(row.city)},'${phone},${clean(row.score)},${clean(row.recommendation)},${row.status || 'active'}`;
-                csvContent += rowStr + "\n";
-            });
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            const date = new Date().toISOString().slice(0,10);
-            link.download = `Adidas_Candidates_${isArchiveMode ? 'Archive' : 'Active'}_${date}.csv`;
-            link.click();
-        }
-
-        function renderData(data) {
-            document.getElementById('val-total').innerText = data.length;
-            const validScores = data.filter(c => c.score && !isNaN(c.score) && c.score > 0);
-            const avg = validScores.length ? (validScores.reduce((acc, c) => acc + parseInt(c.score), 0) / validScores.length).toFixed(1) : "0.0";
-            document.getElementById('val-avg').innerText = avg;
-            const top = data.filter(c => (parseInt(c.score)||0) >= 8).length;
-            document.getElementById('val-top').innerText = top;
-            
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '';
-
-            if (data.length === 0) {
-                const msg = isArchiveMode ? "אין מועמדים בארכיון." : "לא נמצאו מועמדים פעילים.";
-                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:#777;">${msg}</td></tr>`;
-                return;
-            }
-
-            data.forEach((item, index) => {
-                try {
-                    const score = parseInt(item.score) || 0;
-                    let scoreClass = 'score-poor'; 
-                    if (score >= 9) scoreClass = 'score-excellent'; else if (score >= 7) scoreClass = 'score-good'; else if (score >= 5) scoreClass = 'score-average'; 
-
-                    let dateStr = item.date;
-                    try { dateStr = new Date(item.date).toLocaleDateString('he-IL', {day:'2-digit', month:'2-digit', year:'2-digit'}); } catch(e){}
-
-                    const city = item.city || "-";
-                    const roleMap = { 'sales': 'מוכרן/צוות', 'shift_manager': 'אחמ"ש', 'store_manager': 'מנהל/סגן' };
-                    const role = roleMap[item.role] || item.role || "-";
-                    
-                    let phoneStr = (item.phone || "-").toString().replace("'", "");
-                    if (phoneStr !== "-" && !phoneStr.startsWith('0') && phoneStr.length > 8) { phoneStr = "0" + phoneStr; }
-
-                    let recDisplay = item.recommendation || "-";
-                    if (recDisplay.toString().startsWith("http")) {
-                        recDisplay = `<a href="${recDisplay}" target="_blank" style="color:#007bff; text-decoration:none; font-weight:600;">📄 קו"ח</a>`;
-                    } else {
-                        if (recDisplay.length > 10) recDisplay = recDisplay.substring(0, 10) + "...";
-                    }
-
-                    let archiveBtnTable = '';
-                    if (isArchiveMode) {
-                        archiveBtnTable = `<button class="action-btn desktop-action btn-rest" onclick="updateStatus('${phoneStr}', 'active')">♻️ שחזר</button>`;
-                    } else {
-                        archiveBtnTable = `<button class="action-btn desktop-action btn-arch" onclick="updateStatus('${phoneStr}', 'archived')">📥 העבר לארכיון</button>`;
-                    }
-
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${dateStr}</td>
-                        <td style="font-weight:700">${item.name || "ללא שם"}</td>
-                        <td><span class="tag tag-role">${role}</span></td>
-                        <td>${city}</td>
-                        <td>${item.branch || "-"}</td>
-                        <td style="direction:ltr; text-align:right; font-family:monospace;">${phoneStr}</td>
-                        <td style="text-align:center;"><span class="tag tag-score ${scoreClass}">${score}</span></td>
-                        <td style="font-size:13px; color:#666;">${recDisplay}</td>
-                        <td>
-                            <button class="action-btn" onclick="openModal(${index})"><span class="action-icon">🔎</span> פרטים</button>
-                            ${archiveBtnTable}
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                } catch (err) { console.error("Skipping row:", err); }
-            });
-        }
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(`tab-btn-${tabName}`).classList.add('active');
-            document.getElementById(`tab-content-${tabName}`).classList.add('active');
-        }
-
-        function formatInterviewText(text) {
-            if (!text || text.includes("לא נמצא")) return '<div style="color:#999; text-align:center; padding:20px;">לא נשמר תוכן לראיון זה.</div>';
-            
-            let parts = text.split(/Question:|Q:/g);
-            let html = "";
-
-            parts.forEach(part => {
-                if (!part.trim()) return;
+                const response = await fetch(`/api/admin/candidates?password=${encodeURIComponent(adminPassword)}`);
+                const data = await response.json();
+                allCandidates = data.candidates;
                 
-                let [qText, rest] = part.split(/Answer:|A:/);
-                if (!rest) return;
-
-                let answerText = rest;
-                let metaDataHtml = "";
-                let stats = [];
-
-                let timeMatch = rest.match(/Time Taken=(\d+)s?/i);
-                let switchMatch = rest.match(/Tab Switches=(\d+)/i);
-
-                if (timeMatch) stats.push(`⏱ ${timeMatch[1]} שנ'`);
-                if (switchMatch) stats.push(`⚠️ יציאות: ${switchMatch[1]}`);
-
-                if (stats.length > 0) {
-                    metaDataHtml = `<div class="interview-meta"><span class="meta-badge">${stats.join(' | ')}</span></div>`;
-                }
-
-                answerText = answerText.replace(/\[.*?Time Taken.*?\]/gi, "");
-                answerText = answerText.replace(/\[.*?METADAT.*?\]/gi, "");
-                answerText = answerText.replace(/\[?METADAT[A]?\]?/gi, "");
-                answerText = answerText.replace(/Time Taken=\d+s?/gi, "");
-                answerText = answerText.replace(/Tab Switches=\d+/gi, "");
-                answerText = answerText.trim();
-
-                html += `
-                    <div class="interview-qa">
-                        <span class="interview-q">ש: ${qText.trim()}</span>
-                        <span class="interview-a">${answerText}</span>
-                        ${metaDataHtml}
-                    </div>
-                `;
-            });
-            return html;
+                // Populate branch filter
+                const branches = [...new Set(allCandidates.map(c => c.branch).filter(Boolean))];
+                const branchFilter = document.getElementById('branchFilter');
+                branches.forEach(branch => {
+                    const option = document.createElement('option');
+                    option.value = branch;
+                    option.textContent = branch;
+                    branchFilter.appendChild(option);
+                });
+                
+                applyFilters();
+                document.getElementById('loadingDiv').style.display = 'none';
+                document.getElementById('candidatesTable').style.display = 'table';
+            } catch (error) {
+                alert('שגיאה בטעינת הנתונים');
+            }
         }
 
-        function openModal(index) {
-            const item = filteredData[index];
-            if (!item) return;
+        // Filters
+        let filterTimeout;
+        function debouncedFilter() {
+            clearTimeout(filterTimeout);
+            filterTimeout = setTimeout(applyFilters, 300);
+        }
+
+        function applyFilters() {
+            const branchFilter = document.getElementById('branchFilter').value;
+            const recommendationFilter = document.getElementById('recommendationFilter').value;
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
             
-            scrollPosition = window.scrollY;
+            filteredCandidates = allCandidates.filter(candidate => {
+                // Branch filter
+                if (branchFilter && candidate.branch !== branchFilter) return false;
+                
+                // Recommendation filter
+                if (recommendationFilter && candidate.recommendation !== recommendationFilter) return false;
+                
+                // Smart search (name or phone)
+                if (searchInput) {
+                    const nameMatch = candidate.name.toLowerCase().includes(searchInput);
+                    const phoneMatch = candidate.phone.replace(/\D/g, '').includes(searchInput.replace(/\D/g, ''));
+                    if (!nameMatch && !phoneMatch) return false;
+                }
+                
+                return true;
+            });
+            
+            renderTable();
+        }
+
+        // Render Table
+        function renderTable() {
+            const tbody = document.getElementById('candidatesBody');
+            tbody.innerHTML = '';
+            
+            document.getElementById('resultsCount').textContent = 
+                `נמצאו ${filteredCandidates.length} מתוך ${allCandidates.length} מועמדים`;
+            
+            filteredCandidates.forEach(candidate => {
+                const tr = document.createElement('tr');
+                if (candidate.status === 'Archived') tr.classList.add('archived-row');
+                
+                const scoreClass = candidate.score >= 7 ? 'score-high' : candidate.score >= 4 ? 'score-medium' : 'score-low';
+                const recBadge = candidate.recommendation === 'Yes' ? 
+                    '<span class="badge badge-yes">כן</span>' : 
+                    '<span class="badge badge-no">לא</span>';
+                
+                tr.innerHTML = `
+                    <td>${new Date(candidate.date).toLocaleDateString('he-IL')}</td>
+                    <td>${candidate.name}</td>
+                    <td>${candidate.role}</td>
+                    <td class="hide-mobile">${candidate.city}</td>
+                    <td class="hide-mobile">${candidate.branch}</td>
+                    <td>${candidate.phone}</td>
+                    <td><span class="score ${scoreClass}">${candidate.score}</span></td>
+                    <td class="hide-mobile">${candidate.hasCv ? '📎' : '-'}</td>
+                    <td class="hide-mobile">${recBadge}</td>
+                    <td>
+                        <button class="btn btn-view" onclick='openModal(${JSON.stringify(candidate)})'>פרטים</button>
+                        <button class="btn ${candidate.status === 'Active' ? 'btn-archive' : 'btn-restore'} hide-mobile" 
+                                onclick='toggleStatus(${candidate.rowIndex}, "${candidate.status}")'>
+                            ${candidate.status === 'Active' ? 'ארכיון' : 'שחזר'}
+                        </button>
+                    </td>
+                `;
+                
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Modal Functions
+        function openModal(candidate) {
+            currentCandidate = candidate;
+            
+            // Lock scroll
+            scrollPosition = window.pageYOffset;
             document.body.style.position = 'fixed';
-            document.body.style.top = `-${scrollPosition}px`;
             document.body.style.width = '100%';
-            document.body.classList.add('modal-open');
-
-            const score = parseInt(item.score) || 0;
-            document.getElementById('m-name').innerText = (item.name || "מועמד") + ` (ציון התאמה: ${score}/10)`;
-
-            let recLink = item.recommendation;
-            let recDisplay = (recLink && recLink.startsWith('http')) ? `<a href="${recLink}" target="_blank" style="color:#007bff; text-decoration:none;">📄 צפייה בקו"ח</a>` : 'אין קו"ח';
+            document.body.style.top = `-${scrollPosition}px`;
             
-            let dateDisplay = '-';
-            try { dateDisplay = new Date(item.date).toLocaleDateString('he-IL'); } catch(e){}
-
-            document.getElementById('m-meta-grid').innerHTML = `
-                <div class="meta-item"><span class="meta-icon">📅</span> ${dateDisplay}</div>
-                <div class="meta-item"><span class="meta-icon">🏢</span> ${item.branch || '-'}</div>
-                <div class="meta-item"><span class="meta-icon">📍</span> ${item.city || '-'}</div>
-                <div class="meta-item"><span class="meta-icon">📎</span> ${recDisplay}</div>
+            document.getElementById('modalName').textContent = candidate.name;
+            
+            // Desktop meta (don't show branch/city since they're in table)
+            document.getElementById('modalMetaDesktop').innerHTML = `
+                ${candidate.role} | ציון: ${candidate.score}/10
             `;
-
-            document.getElementById('m-general').innerHTML = item.general || "לא התקבל סיכום ממערכת ה-AI.";
-            document.getElementById('m-strengths').innerHTML = item.strengths || "-";
-            document.getElementById('m-weaknesses').innerHTML = item.weaknesses || "-";
-            document.getElementById('m-full-interview').innerHTML = formatInterviewText(item.fullInterview);
-
-            let phoneStr = (item.phone || "").toString().replace(/'/g,"");
-            let actionBtn = '';
-            if (isArchiveMode) {
-                actionBtn = `<button class="modal-actions-btn btn-rest" onclick="updateStatus('${phoneStr}', 'active')">♻️ שחזר לרשימה</button>`;
-            } else {
-                actionBtn = `<button class="modal-actions-btn btn-arch" onclick="updateStatus('${phoneStr}', 'archived')">📥 העבר לארכיון</button>`;
-            }
-            document.getElementById('modal-actions').innerHTML = actionBtn;
-
-            switchTab('summary');
-            document.getElementById('modal-view').style.display = 'flex';
+            
+            // Mobile meta (show branch/city since they're hidden from table)
+            document.getElementById('modalMetaMobile').innerHTML = `
+                ${candidate.role} | ציון: ${candidate.score}/10<br>
+                סניף: ${candidate.branch} | עיר: ${candidate.city}
+                ${candidate.hasCv ? '<br>📎 <a href="#" style="color:white;">הורד קו"ח</a>' : ''}
+            `;
+            
+            // Summary tab
+            document.getElementById('tab-summary').innerHTML = `
+                <p>${candidate.weaknesses || 'לא זמין'}</p>
+            `;
+            
+            // Strengths tab
+            const strengths = candidate.strengths ? candidate.strengths.split(',').map(s => s.trim()) : [];
+            document.getElementById('tab-strengths').innerHTML = `
+                <div class="strength-box">
+                    <h3>💪 חוזקות המועמד</h3>
+                    <ul>
+                        ${strengths.map(s => `<li>${s}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            
+            // Weaknesses tab
+            const weaknesses = candidate.weaknesses ? candidate.weaknesses.split(',').map(w => w.trim()) : [];
+            document.getElementById('tab-weaknesses').innerHTML = `
+                <div class="weakness-box">
+                    <h3>⚠️ נקודות לשיפור</h3>
+                    <ul>
+                        ${weaknesses.map(w => `<li>${w}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+            
+            // Transcript tab (clean metadata)
+            const cleanedTranscript = cleanTranscript(candidate.fullInterview);
+            document.getElementById('tab-transcript').innerHTML = `
+                <div class="transcript">${cleanedTranscript}</div>
+            `;
+            
+            // Archive button (show on mobile only)
+            const archiveBtn = document.getElementById('modalArchiveBtn');
+            archiveBtn.textContent = candidate.status === 'Active' ? 'העבר לארכיון' : 'שחזר מארכיון';
+            archiveBtn.className = candidate.status === 'Active' ? 'btn btn-archive' : 'btn btn-restore';
+            
+            document.getElementById('modalOverlay').classList.add('active');
         }
 
         function closeModal() {
-            document.getElementById('modal-view').style.display = 'none';
-            document.body.classList.remove('modal-open');
+            document.getElementById('modalOverlay').classList.remove('active');
+            
+            // Unlock scroll
             document.body.style.position = '';
-            document.body.style.top = '';
             document.body.style.width = '';
+            document.body.style.top = '';
             window.scrollTo(0, scrollPosition);
         }
-        
-        const style = document.createElement('style');
-        style.innerHTML = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
-        document.head.appendChild(style);
+
+        function closeModalOnOutside(event) {
+            if (event.target.id === 'modalOverlay') {
+                closeModal();
+            }
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.modal-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.modal-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+
+        // Clean Transcript
+        function cleanTranscript(text) {
+            if (!text) return 'לא זמין';
+            
+            return text
+                .replace(/\[METADATA:.*?\]/g, '') // Remove all metadata tags
+                .replace(/\n{3,}/g, '\n\n')        // Collapse multiple newlines
+                .trim();
+        }
+
+        // Toggle Status
+        async function toggleStatus(rowIndex, currentStatus) {
+            const newStatus = currentStatus === 'Active' ? 'Archived' : 'Active';
+            
+            try {
+                const response = await fetch('/api/admin/update-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        password: adminPassword,
+                        rowIndex: rowIndex,
+                        newStatus: newStatus
+                    })
+                });
+                
+                if (response.ok) {
+                    // Update local data
+                    const candidate = allCandidates.find(c => c.rowIndex === rowIndex);
+                    if (candidate) candidate.status = newStatus;
+                    
+                    applyFilters();
+                    alert(`הסטטוס עודכן ל-${newStatus}`);
+                } else {
+                    alert('שגיאה בעדכון הסטטוס');
+                }
+            } catch (error) {
+                alert('שגיאה בעדכון הסטטוס');
+            }
+        }
+
+        async function toggleStatusFromModal() {
+            await toggleStatus(currentCandidate.rowIndex, currentCandidate.status);
+            closeModal();
+        }
+
+        // Allow Enter key for login
+        document.getElementById('passwordInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
     </script>
 </body>
 </html>
