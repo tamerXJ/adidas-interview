@@ -1,279 +1,231 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-
+const path = require('path');
 const app = express();
+
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.static('public'));
+const API_KEY = process.env.API_KEY;
+const GOOGLE_SHEET_URL = process.env.GOOGLE_SHEET_URL;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "1";
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+let ACTIVE_MODEL = "gemini-1.5-flash"; 
 
-// Google Sheets Configuration
-const SHEET_ID = process.env.GOOGLE_SHEET_ID;
-const SHEETS_API_KEY = process.env.GOOGLE_SHEETS_API_KEY;
-const SHEET_NAME = 'Candidates';
+app.use(express.json({ limit: '10mb' })); 
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Helper: Fetch from Google Sheets
-async function fetchFromSheets(range) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}?key=${SHEETS_API_KEY}`;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error('Failed to fetch from Google Sheets');
-  const data = await response.json();
-  return data.values || [];
+// === נתיבים ===
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// 1. משיכת נתונים (שינוי: ביטלנו את reverse כדי להציג ישן למעלה)
+app.get('/api/admin/candidates', async (req, res) => {
+    const { password } = req.query;
+    if (password !== ADMIN_PASSWORD) {
+        return res.status(401).json({ error: "סיסמה שגויה" });
+    }
+    try {
+        const response = await fetch(GOOGLE_SHEET_URL);
+        const data = await response.json();
+        // הערה: גוגל שיטס מחזיר את השורה הראשונה (הכי ישנה) ראשונה.
+        // אם אתה רוצה ישן למעלה -> אל תעשה reverse.
+        // אם אתה רוצה חדש למעלה -> תעשה reverse.
+        // ביקשת ישן למעלה, אז מחקנו את reverse().
+        res.json(data); 
+    } catch (error) {
+        console.error("Sheet Error:", error);
+        res.status(500).json({ error: "תקלה בטעינת נתונים" });
+    }
+});
+
+// === הוספה: עדכון סטטוס (ארכיון/שחזור) ===
+app.post('/api/admin/update-status', async (req, res) => {
+    const { password, phone, status } = req.body;
+    
+    if (password !== ADMIN_PASSWORD) return res.status(401).json({ error: "Unauthorized" });
+
+    try {
+        // שולחים בקשה לסקריפט בגוגל לעדכן שורה
+        await fetch(GOOGLE_SHEET_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: "updateStatus", phone: phone, status: status })
+        });
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Archive Error:", error);
+        res.status(500).json({ error: "Failed to update status" });
+    }
+});
+
+// === מכאן והלאה שום דבר לא השתנה (הקוד היציב) ===
+
+async function findWorkingModel() {
+    console.log("🔍 סורק מודלים זמינים בחשבון Google AI...");
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`);
+        if (!response.ok) { throw new Error(`שגיאה בגישה ל-API: ${response.status}`); }
+        const data = await response.json();
+        if (data.models) {
+            const preferred = data.models.find(m => m.name.includes('gemini-1.5-flash'));
+            const any = data.models.find(m => m.name.includes('gemini') && m.supportedGenerationMethods.includes('generateContent'));
+            if (preferred || any) {
+                ACTIVE_MODEL = (preferred || any).name.replace("models/", "");
+                console.log(`✅ מודל נבחר: ${ACTIVE_MODEL}`);
+            }
+        }
+    } catch (error) { console.error("❌ שגיאת מודל:", error.message); }
 }
 
-// Helper: Append to Google Sheets
-async function appendToSheets(values) {
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}:append?valueInputOption=USER_ENTERED&key=${SHEETS_API_KEY}`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ values: [values] })
-  });
-  if (!response.ok) throw new Error('Failed to append to Google Sheets');
-  return await response.json();
+function cleanJSON(text) {
+    text = text.replace(/```json/g, "").replace(/```/g, "");
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) { return text.substring(firstBrace, lastBrace + 1); }
+    return text;
 }
 
-// Helper: Update specific row in Google Sheets
-async function updateSheetRow(rowIndex, columnIndex, value) {
-  const range = `${SHEET_NAME}!${String.fromCharCode(65 + columnIndex)}${rowIndex}`;
-  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${range}?valueInputOption=USER_ENTERED&key=${SHEETS_API_KEY}`;
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ values: [[value]] })
-  });
-  if (!response.ok) throw new Error('Failed to update Google Sheets');
-  return await response.json();
-}
+app.get('/api/get-questions', (req, res) => { 
+    const role = req.query.role || "sales";
+    const questionSet = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
+    res.json(questionSet); 
+});
 
-// Questions Database
-const QUESTIONS = {
-  sales: [
-    { id: 'q1', type: 'text', question: 'ספר/י לנו על עצמך ועל הניסיון שלך במכירות' },
-    { id: 'q2', type: 'text', question: 'תאר/י מצב שבו הצלחת לשכנע לקוח קשה' },
-    { id: 'q3', type: 'select', question: 'כמה שנות ניסיון יש לך במכירות?', options: ['פחות משנה', '1-2 שנים', '3-5 שנים', 'יותר מ-5 שנים'] },
-    { id: 'q4', type: 'slider', question: 'דרג/י את כישורי השכנוע שלך (1-10)', min: 1, max: 10 },
-    { id: 'q5', type: 'text', question: 'מה מניע אותך להצליח במכירות?' }
-  ],
-  shift_manager: [
-    { id: 'q1', type: 'text', question: 'ספר/י על ניסיון קודם בניהול צוותים' },
-    { id: 'q2', type: 'text', question: 'איך את/ה מתמודד/ת עם קונפליקטים בין עובדים?' },
-    { id: 'q3', type: 'select', question: 'כמה עובדים ניהלת בעבר?', options: ['1-5', '6-10', '11-20', 'יותר מ-20'] },
-    { id: 'q4', type: 'slider', question: 'דרג/י את יכולת הארגון שלך (1-10)', min: 1, max: 10 },
-    { id: 'q5', type: 'text', question: 'מה הסגנון הניהולי שלך?' }
-  ],
-  store_manager: [
-    { id: 'q1', type: 'text', question: 'ספר/י על ניסיון בניהול חנות או עסק' },
-    { id: 'q2', type: 'text', question: 'איך את/ה מתמודד/ת עם לחץ ויעדים?' },
-    { id: 'q3', type: 'select', question: 'האם יש לך ניסיון בניהול תקציב?', options: ['כן', 'לא', 'מעט'] },
-    { id: 'q4', type: 'slider', question: 'דרג/י את כישורי המנהיגות שלך (1-10)', min: 1, max: 10 },
-    { id: 'q5', type: 'text', question: 'מה החזון שלך לחנות מצליחה?' },
-    { id: 'q6', type: 'text', question: 'תאר/י החלטה עסקית קשה שקיבלת' }
-  ]
+const ROLES_QUESTIONS = {
+    "sales": [
+        { id: 1, text: "העבודה באדידס דורשת עמידה ממושכת ומשמרות לילה/סופ\"ש. האם יש מגבלה?", type: "select", options: ["זמין להכל", "מגבלה חלקית", "לא יכול"] },
+        { id: 2, text: "האם יש לך דרך הגעה עצמאית למשמרות (גם בסופ\"ש)?", type: "select", options: ["כן, יש לי רכב צמוד", "תחב\"צ (מוגבל)", "אין דרך הגעה"] },
+        { id: 3, text: "דרג/י את עצמך בתכונות הבאות (1=נמוך, 10=גבוה):", type: "sliders", options: ["אנרגיה ומכירות", "עבודת צוות", "סבלנות ללקוחות", "חיבור לאופנה וספורט"] },
+        { id: 4, text: "תאר/י סיטואציה שבה נתת שירות מעל ומעבר ללקוח.", type: "text" },
+        { id: 5, text: "לקוח כועס צועק עליך ליד אנשים אחרים. מה התגובה הראשונה שלך?", type: "text" },
+        { id: 6, text: "איך תשכנע לקוח שמתלבט לקנות נעל יקרה כי \"זה יקר לו\"?", type: "text" },
+        { id: 7, text: "המנהל ביקש ממך לסדר מחסן באמצע מכירה טובה. מה תעשה?", type: "text" },
+        { id: 8, text: "למה דווקא אדידס ולא רשת אחרת?", type: "text" }
+    ],
+    "shift_manager": [
+        { id: 1, text: "כמה ניסיון יש לך בניהול משמרת או צוות עובדים?", type: "select", options: ["אין ניסיון", "עד שנה", "מעל שנה"] },
+        { id: 2, text: "שני עובדים רבים באמצע המשמרת מול לקוחות. איך אתה פועל באותו רגע?", type: "text" },
+        { id: 3, text: "איך אתה מעריך את היכולות שלך בניהול? (גרור את הסמן)", type: "sliders", options: ["אסרטיביות מול עובדים", "פתרון בעיות בזמן אמת", "ניהול משימות במקביל", "שירותיות"] },
+        { id: 4, text: "יש עומס מטורף בחנות ואתה רואה שעובד אחד מדבר בטלפון בצד. איך תגיב?", type: "text" },
+        { id: 5, text: "לקוח דורש \"מנהל\" וצועק על עובד שלך. איך אתה ניגש לסיטואציה?", type: "text" },
+        { id: 6, text: "חסר לך עובד למשמרת סופ\"ש ואף אחד לא רוצה לבוא. איך תפתור את זה?", type: "text" },
+        { id: 7, text: "מה ההבדל בעיניך בין \"בוס\" לבין \"מנהל\"?", type: "text" },
+        { id: 8, text: "איך תדאג שהחנות תישאר מסודרת גם בשיא הלחץ?", type: "text" },
+        { id: 9, text: "במהלך המשמרת אתה מזהה שממוצע הפריטים לעסקה (UPT) נמוך מהיעד. אילו פעולות מיידיות תעשה ברצפה כדי לשפר את זה?", type: "text" }
+    ],
+    "store_manager": [
+        { id: 1, text: "כמה שנים ניהלת חנות או יחידת רווח והפסד (P&L)?", type: "select", options: ["אין ניסיון ניהולי", "1-2 שנים", "3 שנים ומעלה"] },
+        { id: 2, text: "החנות לא עומדת ביעד המרה (Conversion) כבר חודש. מה תוכנית הפעולה שלך?", type: "text" },
+        { id: 3, text: "דירוג עצמי של מיומנויות ניהול:", type: "sliders", options: ["ראייה עסקית (KPI)", "פיתוח והדרכת עובדים", "גיוס כוח אדם", "עמידה תחת לחץ"] },
+        { id: 4, text: "עובד ותיק ומוערך נשחק, מאחר למשמרות ומוכר פחות. איך תבצע שיחת משוב?", type: "text" },
+        { id: 5, text: "איך אתה מגייס עובדים איכותיים? מה הדבר הכי חשוב שאתה מחפש במועמד?", type: "text" },
+        { id: 6, text: "תאר החלטה ניהולית קשה שנאלצת לקבל בעבר. האם היית משנה אותה היום?", type: "text" },
+        { id: 7, text: "איך תרתום את הצוות ליעדים אגרסיביים בתקופת מבצעים לחוצה?", type: "text" },
+        { id: 8, text: "מה הערך המוסף שתביא כמנהל לרשת אדידס?", type: "text" },
+        { id: 9, text: "מעבר ליעד היומי, איך אתה מנתח דוח KPI שבועי? תן דוגמה לנתון שזיהית בו חולשה ואיך בניית תוכנית לשיפורו.", type: "text" }
+    ]
 };
 
-// Validation helpers
-function validatePhone(phone) {
-  const cleaned = phone.replace(/\D/g, '');
-  return /^05\d{8}$/.test(cleaned);
-}
-
-function containsHebrew(text) {
-  return /[\u0590-\u05FF]/.test(text);
-}
-
-// ENDPOINT 1: Get Questions
-app.get('/api/get-questions', (req, res) => {
-  try {
-    const { role } = req.query;
-    
-    if (!role || !QUESTIONS[role]) {
-      return res.status(400).json({ error: 'Invalid role', code: 'INVALID_ROLE' });
-    }
-    
-    res.json({ questions: QUESTIONS[role] });
-  } catch (error) {
-    console.error('Error in /api/get-questions:', error);
-    res.status(500).json({ error: 'Internal server error', code: 'SERVER_ERROR' });
-  }
-});
-
-// ENDPOINT 2: Submit Interview
 app.post('/api/submit-interview', async (req, res) => {
-  try {
-    const { personalDetails, role, answers, cvBase64, metadata } = req.body;
+    const { candidate, answers } = req.body;
+    const role = candidate.role || "sales";
     
-    // Validation
-    if (!personalDetails || !role || !answers) {
-      return res.status(400).json({ error: 'Missing required fields', code: 'MISSING_FIELDS' });
-    }
-    
-    if (!validatePhone(personalDetails.phone)) {
-      return res.status(400).json({ error: 'Invalid phone number', code: 'INVALID_PHONE' });
-    }
-    
-    if (!containsHebrew(personalDetails.name)) {
-      return res.status(400).json({ error: 'Name must contain Hebrew characters', code: 'INVALID_NAME' });
-    }
-    
-    // Build full interview text
-    const questions = QUESTIONS[role];
-    let fullInterview = `תפקיד: ${role}\n\n`;
-    
-    Object.keys(answers).forEach((questionId) => {
-      const question = questions.find(q => q.id === questionId);
-      if (question) {
-        fullInterview += `${question.question}\n`;
-        fullInterview += `תשובה: ${answers[questionId]}\n`;
-        if (metadata?.timeTaken?.[questionId]) {
-          fullInterview += `[METADATA: Time=${metadata.timeTaken[questionId]}s]\n`;
+    console.log(`\n⏳ מעבד ריאיון עבור: ${candidate.name} (${role})...`);
+
+    const currentQuestions = ROLES_QUESTIONS[role] || ROLES_QUESTIONS["sales"];
+
+    try {
+        let answersText = "";
+        answers.forEach((ans) => {
+            const qObj = currentQuestions.find(q => q.id === ans.questionId);
+            answersText += `Question: ${qObj ? qObj.text : ''}\nAnswer: ${ans.answer}\n[METADATA: Time Taken=${ans.timeSeconds}s, Tab Switches=${ans.switchedTabs}]\n\n`;
+        });
+
+        let roleInstruction = "";
+        if (role === "store_manager") {
+            roleInstruction = "Evaluate for a STORE MANAGER. Focus on KPI understanding, Leadership, and Strategy.";
+        } else if (role === "shift_manager") {
+            roleInstruction = "Evaluate for a SHIFT MANAGER. Focus on Operations, Team Motivation, and Responsibility.";
+        } else {
+            roleInstruction = "Evaluate for a SALES ASSOCIATE. Focus on Service, Sales Drive, and Teamwork.";
         }
-        fullInterview += '\n';
-      }
-    });
-    
-    if (metadata?.tabSwitches) {
-      fullInterview += `[METADATA: Tab Switches=${metadata.tabSwitches}]\n`;
+
+        const promptText = `
+        You are a recruiting expert for Adidas. Analyze the interview below.
+        
+        Candidate Name: ${candidate.name}
+        Role: ${role}
+        Interview Data:
+        ${answersText}
+
+        INSTRUCTIONS:
+        1. ${roleInstruction}
+        2. CHECK INTEGRITY: High tab switches (>2) or very short times = lower score.
+        3. Output valid JSON only.
+
+        JSON Structure:
+        {
+          "score": 5, 
+          "general": "Summary in Hebrew",
+          "strengths": "Strengths in Hebrew",
+          "weaknesses": "Weaknesses in Hebrew",
+          "recommendation": "Yes/No (in Hebrew)"
+        }
+        `;
+
+        // === זה הקוד המתוקן (העתק והדבק במקום ה-fetch הישן) ===
+        const aiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${ACTIVE_MODEL}:generateContent?key=${API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                contents: [{ parts: [{ text: promptText }] }],
+                // השורה הזו היא הקסם שמונע קריסות:
+                generationConfig: { response_mime_type: "application/json" } 
+            })
+        });
+        // ==========================================================
+
+        if (!aiResponse.ok) { throw new Error(`API Error: ${aiResponse.status}`); }
+
+        const aiData = await aiResponse.json();
+        let aiText = aiData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+        const cleanedText = cleanJSON(aiText);
+        
+        let analysis = { score: 0 };
+        try { analysis = JSON.parse(cleanedText); analysis.score = parseInt(analysis.score) || 0; } 
+        catch (e) { console.error("❌ JSON Parse Failed"); }
+
+        console.log(`🤖 ציון סופי: ${analysis.score}`);
+
+       // === השינוי כאן: הוספת fullInterview ===
+        if (GOOGLE_SHEET_URL && GOOGLE_SHEET_URL.startsWith("http")) {
+            await fetch(GOOGLE_SHEET_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    ...candidate, 
+                    ...analysis,
+                    fullInterview: answersText // שולח את כל המלל של השאלות והתשובות
+                })
+            });
+            console.log("✅ נשמר באקסל");
+        }
+
+        res.json({ message: "OK" });
+
+    } catch (error) {
+        console.error("🔥 System Error:", error.message);
+        res.json({ message: "Error" });
     }
-    
-    // Call Gemini AI for analysis
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
-      generationConfig: {
-        response_mime_type: "application/json", // CRITICAL: Prevents JSON parse errors
-        temperature: 0.7
-      }
-    });
-    
-    const prompt = `נתח את הראיון הבא לתפקיד ${role}:
-
-${fullInterview}
-
-החזר JSON בפורמט הבא:
-{
-  "score": number (1-10),
-  "strengths": ["חוזק 1", "חוזק 2", "חוזק 3"],
-  "weaknesses": ["חולשה 1", "חולשה 2"],
-  "recommendation": "Yes" or "No",
-  "summary": "סיכום קצר של המועמד"
-}`;
-    
-    const result = await model.generateContent(prompt);
-    const aiText = result.response.text();
-    const aiResponse = JSON.parse(aiText);
-    
-    // Prepare row for Google Sheets
-    const row = [
-      new Date().toISOString(),
-      personalDetails.name,
-      role,
-      personalDetails.city || '',
-      personalDetails.branch || '',
-      personalDetails.phone,
-      personalDetails.email || '',
-      aiResponse.score,
-      aiResponse.strengths.join(', '),
-      aiResponse.weaknesses.join(', '),
-      aiResponse.recommendation,
-      'Active', // Status
-      fullInterview,
-      cvBase64 || '',
-      JSON.stringify(metadata || {})
-    ];
-    
-    // Save to Google Sheets
-    await appendToSheets(row);
-    
-    res.json({ 
-      success: true, 
-      message: 'Interview submitted successfully',
-      confirmationNumber: Date.now().toString().slice(-6)
-    });
-    
-  } catch (error) {
-    console.error('Error in /api/submit-interview:', error);
-    res.status(500).json({ 
-      error: 'Failed to submit interview', 
-      code: 'SUBMISSION_FAILED',
-      details: error.message 
-    });
-  }
 });
 
-// ENDPOINT 3: Get Candidates (Admin)
-app.get('/api/admin/candidates', async (req, res) => {
-  try {
-    const { password } = req.query;
-    
-    if (password !== process.env.ADMIN_PASSWORD) {
-      return res.status(401).json({ error: 'Unauthorized', code: 'INVALID_PASSWORD' });
-    }
-    
-    const rows = await fetchFromSheets(`${SHEET_NAME}!A2:O`); // Skip header row
-    
-    const candidates = rows.map((row, index) => ({
-      rowIndex: index + 2, // +2 because sheet is 1-indexed and we skip header
-      date: row[0] || '',
-      name: row[1] || '',
-      role: row[2] || '',
-      city: row[3] || '',
-      branch: row[4] || '',
-      phone: row[5] || '',
-      email: row[6] || '',
-      score: parseInt(row[7]) || 0,
-      strengths: row[8] || '',
-      weaknesses: row[9] || '',
-      recommendation: row[10] || '',
-      status: row[11] || 'Active',
-      fullInterview: row[12] || '',
-      hasCv: !!row[13],
-      metadata: row[14] || '{}'
-    }));
-    
-    res.json({ candidates });
-    
-  } catch (error) {
-    console.error('Error in /api/admin/candidates:', error);
-    res.status(500).json({ error: 'Failed to fetch candidates', code: 'FETCH_FAILED' });
-  }
-});
-
-// ENDPOINT 4: Update Candidate Status (Admin)
-app.post('/api/admin/update-status', async (req, res) => {
-  try {
-    const { password, rowIndex, newStatus } = req.body;
-    
-    if (password !== process.env.ADMIN_PASSWORD) {
-      return res.status(401).json({ error: 'Unauthorized', code: 'INVALID_PASSWORD' });
-    }
-    
-    // Column 11 (L) is status (0-indexed: 11)
-    await updateSheetRow(rowIndex, 11, newStatus);
-    
-    res.json({ success: true, message: 'Status updated successfully' });
-    
-  } catch (error) {
-    console.error('Error in /api/admin/update-status:', error);
-    res.status(500).json({ error: 'Failed to update status', code: 'UPDATE_FAILED' });
-  }
-});
-
-// Error handler middleware
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Internal server error', code: 'SERVER_ERROR' });
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
-  console.log(`📊 Google Sheet ID: ${SHEET_ID}`);
-  console.log(`🤖 Gemini AI initialized`);
+app.listen(PORT, async () => {
+    console.log(`Server is running on port ${PORT}`);
+    await findWorkingModel();
 });
