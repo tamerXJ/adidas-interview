@@ -72,6 +72,7 @@
 
         .filter-bar { background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
         
+        /* === סגנונות לשדות הסינון === */
         .filter-select { 
             padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; 
             width: 280px; 
@@ -79,6 +80,13 @@
         }
         
         .rec-select { width: 150px; }
+
+        /* סגנון לתיבת החיפוש החדשה */
+        .filter-input {
+            padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;
+            width: 220px; /* רוחב נוח לחיפוש */
+            background-color: #fff;
+        }
 
         .export-btn { background: #27ae60; color: #fff; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; transition: 0.2s; white-space: nowrap; }
 
@@ -116,6 +124,9 @@
 
             th, td { padding: 10px 4px; font-size: 12px; }
             .filter-select { width: 100%; flex: 1; }
+            
+            /* בטלפון שורת החיפוש תתפוס את כל הרוחב */
+            .filter-input { width: 100%; flex: 1; }
         }
 
         .tag { font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 4px; display: inline-block; }
@@ -238,7 +249,9 @@
 
         <div class="container">
             <div class="filter-bar">
-                <label style="font-weight:700; font-size:14px; margin-left:10px;">סניף:</label>
+                <input type="text" id="search-input" class="filter-input" placeholder="🔍 חיפוש שם או טלפון..." oninput="applyFilter()">
+
+                <label style="font-weight:700; font-size:14px; margin-left:10px; margin-right:15px;">סניף:</label>
                 <select id="branch-filter" class="filter-select" onchange="applyFilter()">
                     <option value="all">הצג את כל הסניפים</option>
                 </select>
@@ -454,9 +467,12 @@
             if (branches.includes(currentVal)) { select.value = currentVal; }
         }
 
+        // === פונקציית הסינון החדשה (כוללת חיפוש) ===
         function applyFilter() {
             const selectedBranch = document.getElementById('branch-filter').value;
             const selectedRec = document.getElementById('rec-filter') ? document.getElementById('rec-filter').value : 'all';
+            // קבלת טקסט החיפוש והמרתו לאותיות קטנות (למקרה שיש אנגלית)
+            const searchText = document.getElementById('search-input').value.trim().toLowerCase();
 
             let dataByStatus = fullData.filter(item => {
                 const status = item.status || "active";
@@ -468,10 +484,22 @@
                 dataByStatus = dataByStatus.filter(item => item.branch === selectedBranch);
             }
 
-            // סינון לפי המלצה (חדש)
+            // סינון לפי המלצה
             if (selectedRec !== 'all') {
                 dataByStatus = dataByStatus.filter(item => {
                     return item.recommendation && item.recommendation.toString().includes(selectedRec);
+                });
+            }
+
+            // סינון לפי שורת החיפוש (שם או טלפון)
+            if (searchText !== "") {
+                dataByStatus = dataByStatus.filter(item => {
+                    const name = (item.name || "").toString().toLowerCase();
+                    // ניקוי הטלפון מתווים שאינם מספרים לצורך חיפוש גמיש (050-123 ימצא את 050123)
+                    const phone = (item.phone || "").toString().replace(/\D/g, ""); 
+                    const searchPhone = searchText.replace(/\D/g, "");
+                    
+                    return name.includes(searchText) || phone.includes(searchPhone);
                 });
             }
 
@@ -538,12 +566,10 @@
                         if (recDisplay.length > 10) recDisplay = recDisplay.substring(0, 10) + "...";
                     }
 
-                    // === השינוי כאן: הוספת "העבר לארכיון" לטבלה בדסקטופ ===
                     let archiveBtnTable = '';
                     if (isArchiveMode) {
                         archiveBtnTable = `<button class="action-btn desktop-action btn-rest" onclick="updateStatus('${phoneStr}', 'active')">♻️ שחזר</button>`;
                     } else {
-                        // הוספתי "העבר ל" לפני המילה ארכיון
                         archiveBtnTable = `<button class="action-btn desktop-action btn-arch" onclick="updateStatus('${phoneStr}', 'archived')">📥 העבר לארכיון</button>`;
                     }
 
