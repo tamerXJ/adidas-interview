@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>טופס מועמדים - Interview System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .step {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .role-cards {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .role-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .role-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .role-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea15, #764ba215);
+        }
+
+        .role-card h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .role-card p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            font-family: inherit;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        input.error,
+        select.error,
+        textarea.error {
+            border-color: #e74c3c;
+        }
+
+        .slider-container {
+            padding: 10px 0;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 5px;
+            background: #e0e0e0;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+
+        .slider-value {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            margin-top: 10px;
+        }
+
+        .file-upload {
+            border: 2px dashed #e0e0e0;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .file-upload.has-file {
+            border-color: #27ae60;
+            background: #eafaf1;
+        }
+
+        .file-name {
+            margin-top: 10px;
+            color: #27ae60;
+            font-weight: 500;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 48px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .loading-screen {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-icon {
+            font-size: 80px;
+            color: #27ae60;
+            margin-bottom: 20px;
+        }
+
+        .confirmation-number {
+            background: #f8f9ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .question-counter {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .char-counter {
+            text-align: left;
+            color: #999;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .buttons {
+                flex-direction: column-reverse;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressBar"></div>
+        </div>
+
+        <!-- Step 1: Role Selection -->
+        <div id="step-role" class="step active">
+            <h1>בחר/י תפקיד</h1>
+            <p class="subtitle">באיזה תפקיד את/ה מעוניין/ת?</p>
+            
+            <div class="role-cards">
+                <div class="role-card" onclick="selectRole('sales')">
+                    <h3>🛍️ איש/אשת מכירות</h3>
+                    <p>מכירות ישירות ללקוחות, שירות ויעוץ</p>
+                </div>
+                <div class="role-card" onclick="selectRole('shift_manager')">
+                    <h3>👥 מנהל/ת משמרת</h3>
+                    <p>ניהול צוות, תפעול יומיומי</p>
+                </div>
+                <div class="role-card" onclick="selectRole('store_manager')">
+                    <h3>🏪 מנהל/ת חנות</h3>
+                    <p>ניהול מלא של החנות והעובדים</p>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn-primary" id="roleNextBtn" disabled onclick="nextStep()">המשך</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Personal Details -->
+        <div id="step-personal" class="step">
+            <h1>פרטים אישיים</h1>
+            <p class="subtitle">נא למלא את הפרטים הבאים</p>
+
+            <div class="form-group">
+                <label>שם מלא *</label>
+                <input type="text" id="name" placeholder="שם פרטי ושם משפחה">
+                <div class="error-message" id="nameError">יש להזין שם בעברית</div>
+            </div>
+
+            <div class="form-group">
+                <label>טלפון *</label>
+                <input type="tel" id="phone" placeholder="05X-XXXXXXX">
+                <div class="error-message" id="phoneError">מספר טלפון לא תקין</div>
+            </div>
+
+            <div class="form-group">
+                <label>אימייל</label>
+                <input type="email" id="email" placeholder="example@gmail.com">
+            </div>
+
+            <div class="form-group">
+                <label>עיר</label>
+                <input type="text" id="city" placeholder="תל אביב">
+            </div>
+
+            <div class="form-group">
+                <label>סניף מועדף</label>
+                <select id="branch">
+                    <option value="">בחר/י סניף</option>
+                    <option value="תל אביב - דיזנגוף">תל אביב - דיזנגוף</option>
+                    <option value="ירושלים - ממילא">ירושלים - ממילא</option>
+                    <option value="חיפה - מרכז">חיפה - מרכז</option>
+                    <option value="באר שבע - קניון">באר שבע - קניון</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>קורות חיים (PDF/Word)</label>
+                <div class="file-upload" id="fileUploadArea" onclick="document.getElementById('cvFile').click()">
+                    <div>📎 לחץ/י להעלאת קובץ</div>
+                    <div class="file-name" id="fileName"></div>
+                </div>
+                <input type="file" id="cvFile" accept=".pdf,.doc,.docx" style="display:none" onchange="handleFileUpload(event)">
+            </div>
+
+            <div class="buttons">
+                <button class="btn-secondary" onclick="prevStep()">חזור</button>
+                <button class="btn-primary" id="personalNextBtn" onclick="loadQuestions()">המשך</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Questions -->
+        <div id="step-questions" class="step">
+            <div class="question-counter" id="questionCounter"></div>
+            <div id="questionContainer"></div>
+
+            <div class="buttons">
+                <button class="btn-secondary" id="prevQuestionBtn" onclick="prevQuestion()">הקודם</button>
+                <button class="btn-primary" id="nextQuestionBtn" onclick="nextQuestion()">הבא</button>
+            </div>
+        </div>
+
+        <!-- Step 4: Loading -->
+        <div id="step-loading" class="step">
+            <div class="loading-screen">
+                <div class="spinner"></div>
+                <h2>מעבד את התשובות שלך...</h2>
+                <p class="subtitle">אנא המתן, זה ייקח רגע</p>
+            </div>
+        </div>
+
+        <!-- Step 5: Success -->
+        <div id="step-success" class="step">
+            <div class="loading-screen">
+                <div class="success-icon">✅</div>
+                <h1>הטופס נשלח בהצלחה!</h1>
+                <p class="subtitle">תודה שהגשת מועמדות. ניצור איתך קשר בקרוב.</p>
+                <div class="confirmation-number" id="confirmationNumber"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        const state = {
+            role: null,
+            personalDetails: {},
+            answers: {},
+            cvBase64: null,
+            metadata: {
+                tabSwitches: 0,
+                timeTaken: {},
+                startTimes: {}
+            },
+            currentStep: 0,
+            questions: [],
+            currentQuestionIndex: 0
+        };
+
+        // Local Storage
+        function saveToLocalStorage() {
+            localStorage.setItem('interviewState', JSON.stringify(state));
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('interviewState');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                Object.assign(state, parsed);
+                
+                // Restore UI
+                if (state.role) {
+                    document.querySelector(`[onclick="selectRole('${state.role}')"]`)?.classList.add('selected');
+                    document.getElementById('roleNextBtn').disabled = false;
+                }
+                if (state.personalDetails.name) document.getElementById('name').value = state.personalDetails.name;
+                if (state.personalDetails.phone) document.getElementById('phone').value = state.personalDetails.phone;
+                if (state.personalDetails.email) document.getElementById('email').value = state.personalDetails.email;
+                if (state.personalDetails.city) document.getElementById('city').value = state.personalDetails.city;
+                if (state.personalDetails.branch) document.getElementById('branch').value = state.personalDetails.branch;
+            }
+        }
+
+        // Anti-Cheat: Track Tab Switches
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && state.currentStep === 2) {
+                state.metadata.tabSwitches++;
+                saveToLocalStorage();
+            }
+        });
+
+        // Role Selection
+        function selectRole(role) {
+            document.querySelectorAll('.role-card').forEach(card => card.classList.remove('selected'));
+            event.target.closest('.role-card').classList.add('selected');
+            state.role = role;
+            document.getElementById('roleNextBtn').disabled = false;
+            saveToLocalStorage();
+        }
+
+        // Validation
+        function validatePhone(phone) {
+            const cleaned = phone.replace(/\D/g, '');
+            return /^05\d{8}$/.test(cleaned);
+        }
+
+        function containsHebrew(text) {
+            return /[\u0590-\u05FF]/.test(text);
+        }
+
+        function validatePersonalDetails() {
+            let valid = true;
+            
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+            
+            if (!containsHebrew(name)) {
+                document.getElementById('name').classList.add('error');
+                document.getElementById('nameError').classList.add('show');
+                valid = false;
+            } else {
+                document.getElementById('name').classList.remove('error');
+                document.getElementById('nameError').classList.remove('show');
+            }
+            
+            if (!validatePhone(phone)) {
+                document.getElementById('phone').classList.add('error');
+                document.getElementById('phoneError').classList.add('show');
+                valid = false;
+            } else {
+                document.getElementById('phone').classList.remove('error');
+                document.getElementById('phoneError').classList.remove('show');
+            }
+            
+            return valid;
+        }
+
+        // File Upload
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (file.size > 5 * 1024 * 1024) {
+                alert('הקובץ גדול מדי. מקסימום 5MB');
+                return;
+            }
+            
+            const base64 = await fileToBase64(file);
+            state.cvBase64 = base64;
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileUploadArea').classList.add('has-file');
+            saveToLocalStorage();
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Load Questions
+        async function loadQuestions() {
+            if (!validatePersonalDetails()) return;
+            
+            state.personalDetails = {
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                city: document.getElementById('city').value,
+                branch: document.getElementById('branch').value
+            };
+            saveToLocalStorage();
+            
+            try {
+                const response = await fetch(`/api/get-questions?role=${state.role}`);
+                const data = await response.json();
+                state.questions = data.questions;
+                state.currentQuestionIndex = 0;
+                renderQuestion();
+                nextStep();
+            } catch (error) {
+                alert('שגיאה בטעינת השאלות. נסה שוב.');
+            }
+        }
+
+        // Render Question
+        function renderQuestion() {
+            const question = state.questions[state.currentQuestionIndex];
+            const container = document.getElementById('questionContainer');
+            
+            document.getElementById('questionCounter').textContent = 
+                `שאלה ${state.currentQuestionIndex + 1} מתוך ${state.questions.length}`;
+            
+            // Track time
+            state.metadata.startTimes[question.id] = Date.now();
+            
+            let html = `<h2>${question.question}</h2>`;
+            
+            if (question.type === 'text') {
+                const current = state.answers[question.id] || '';
+                html += `
+                    <div class="form-group">
+                        <textarea id="answer" placeholder="הקלד/י את תשובתך כאן...">${current}</textarea>
+                        <div class="char-counter"><span id="charCount">${current.length}</span> תווים</div>
+                    </div>
+                `;
+            } else if (question.type === 'select') {
+                const current = state.answers[question.id] || '';
+                html += `
+                    <div class="form-group">
+                        <select id="answer">
+                            <option value="">בחר/י תשובה</option>
+                            ${question.options.map(opt => 
+                                `<option value="${opt}" ${current === opt ? 'selected' : ''}>${opt}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                `;
+            } else if (question.type === 'slider') {
+                const current = state.answers[question.id] || Math.floor((question.min + question.max) / 2);
+                html += `
+                    <div class="form-group">
+                        <div class="slider-container">
+                            <input type="range" id="answer" min="${question.min}" max="${question.max}" 
+                                   value="${current}" oninput="updateSliderValue(this.value)">
+                            <div class="slider-value" id="sliderValue">${current}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+            
+            // Add event listeners
+            if (question.type === 'text') {
+                document.getElementById('answer').addEventListener('input', (e) => {
+                    document.getElementById('charCount').textContent = e.target.value.length;
+                });
+            }
+            
+            // Update buttons
+            document.getElementById('prevQuestionBtn').style.display = 
+                state.currentQuestionIndex === 0 ? 'none' : 'block';
+            document.getElementById('nextQuestionBtn').textContent = 
+                state.currentQuestionIndex === state.questions.length - 1 ? 'סיום' : 'הבא';
+        }
+
+        function updateSliderValue(value) {
+            document.getElementById('sliderValue').textContent = value;
+        }
+
+        // Question Navigation
+        function saveCurrentAnswer() {
+            const question = state.questions[state.currentQuestionIndex];
+            const answer = document.getElementById('answer').value;
+            state.answers[question.id] = answer;
+            
+            // Calculate time taken
+            const timeTaken = (Date.now() - state.metadata.startTimes[question.id]) / 1000;
+            state.metadata.timeTaken[question.id] = Math.round(timeTaken);
+            
+            saveToLocalStorage();
+        }
+
+        function nextQuestion() {
+            saveCurrentAnswer();
+            
+            if (state.currentQuestionIndex === state.questions.length - 1) {
+                submitInterview();
+            } else {
+                state.currentQuestionIndex++;
+                renderQuestion();
+            }
+        }
+
+        function prevQuestion() {
+            saveCurrentAnswer();
+            state.currentQuestionIndex--;
+            renderQuestion();
+        }
+
+        // Submit Interview
+        async function submitInterview() {
+            showStep(3); // Loading
+            
+            try {
+                const response = await fetch('/api/submit-interview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(state)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('confirmationNumber').textContent = 
+                        `מספר אישור: ${data.confirmationNumber}`;
+                    localStorage.removeItem('interviewState');
+                    showStep(4); // Success
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                alert('שגיאה בשליחת הטופס. נסה שוב.');
+                prevStep();
+            }
+        }
+
+        // Step Navigation
+        function nextStep() {
+            state.currentStep++;
+            showStep(state.currentStep);
+        }
+
+        function prevStep() {
+            state.currentStep--;
+            showStep(state.currentStep);
+        }
+
+        function showStep(stepIndex) {
+            document.querySelectorAll('.step').forEach((step, i) => {
+                step.classList.toggle('active', i === stepIndex);
+            });
+            
+            const progress = ((stepIndex + 1) / 5) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+            
+            state.currentStep = stepIndex;
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            loadFromLocalStorage();
+        });
+    </script>
+</body>
+</html>
